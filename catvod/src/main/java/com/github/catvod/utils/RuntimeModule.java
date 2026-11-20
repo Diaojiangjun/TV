@@ -103,6 +103,16 @@ public enum RuntimeModule {
         for (RuntimeModule module : values()) module.refreshPackage();
     }
 
+    public static void resetFailures(String packageName) {
+        for (RuntimeModule module : values()) if (module.getPackageName().equals(packageName)) module.resetFailures();
+    }
+
+    private synchronized void resetFailures() {
+        External state = external();
+        state.entryFailure = null;
+        state.loadFailure = null;
+    }
+
     private synchronized void refreshPackage() {
         PackageInfo info = getExternalInfo();
         External state = external();

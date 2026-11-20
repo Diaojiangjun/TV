@@ -395,6 +395,7 @@
     <string name="file_export_success">檔案已導出</string>
     <string name="error_config_get">配置取得失敗</string>
     <string name="error_spider_load">爬蟲載入失敗</string>
+<string name="error_legacy_jar">此爬蟲 jar 由舊版 QuickJS 打包（com.whl.quickjs），與目前執行環境（com.fongmi.quickjs）不相容，請使用新版 CatVodSpider 重新打包。</string>
     <string name="error_file_open">無法開啟檔案</string>
     <string name="error_file_save">無法儲存檔案</string>
     <string name="error_play_next">已經是最後一集了！</string>

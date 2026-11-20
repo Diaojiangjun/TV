@@ -307,6 +307,7 @@
     <string name="module_available">Update available</string>
     <string name="module_not_installed">Not installed</string>
     <string name="error_module_missing">%1$s is not installed. Download it in Module management.</string>
+<string name="error_legacy_jar">This crawler JAR was built for the legacy QuickJS runtime (com.whl.quickjs) and is incompatible with the current runtime. Rebuild it with the current CatVodSpider.</string>
     <string name="module_unsupported">Not supported on this device</string>
     <string name="module_restart">Please restart the app</string>
     <string name="module_restart_action">Restart</string>

@@ -26,7 +26,10 @@ public class RuntimeReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         if (intent.getData() == null) return;
         String packageName = intent.getData().getSchemeSpecificPart();
-        if (isRuntimePackage(packageName)) RuntimeModule.refresh();
+        if (isRuntimePackage(packageName)) {
+            RuntimeModule.refresh();
+            RuntimeModule.resetFailures(packageName);
+        }
     }
 
     private boolean isRuntimePackage(String packageName) {

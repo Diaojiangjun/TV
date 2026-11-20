@@ -382,7 +382,10 @@ public class RuntimeInstaller {
         if (status != null) result.putExtra(PackageInstaller.EXTRA_STATUS, status);
         if (message != null) result.putExtra(PackageInstaller.EXTRA_STATUS_MESSAGE, message);
         try {
-            if (status != null && status == PackageInstaller.STATUS_SUCCESS) clearInstalledApk(target, version);
+            if (status != null && status == PackageInstaller.STATUS_SUCCESS) {
+                RuntimeModule.resetFailures(target);
+                clearInstalledApk(target, version);
+            }
         } finally {
             context.sendBroadcast(result);
         }

@@ -49,6 +49,7 @@ public class Notify {
     }
 
     public static String getError(Throwable e) {
+        if (isLegacyQuickJsJar(e)) return ResUtil.getString(R.string.error_legacy_jar);
         RuntimeModule.MissingException missing = RuntimeModule.MissingException.find(e);
         if (missing != null) {
             String title = missing.module == RuntimeModule.THUNDER ? ResUtil.getString(R.string.module_thunder) : missing.module.title;
@@ -57,6 +58,15 @@ public class Notify {
         for (Throwable current = e; current != null; current = current.getCause()) if (current instanceof ExtractException) return current.getMessage();
         for (Throwable current = e; current != null; current = current.getCause()) if (current instanceof SpiderLoadException) return ResUtil.getString(R.string.error_spider_load);
         return null;
+    }
+
+    private static boolean isLegacyQuickJsJar(Throwable error) {
+        for (Throwable current = error; current != null; current = current.getCause()) {
+            if (!(current instanceof NoClassDefFoundError) && !(current instanceof ClassNotFoundException)) continue;
+            String message = current.getMessage();
+            if (message != null && (message.contains("com/whl/quickjs") || message.contains("com.whl.quickjs"))) return true;
+        }
+        return false;
     }
 
     public static void show(Notification notification) {
