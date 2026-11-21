@@ -390,6 +390,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
         mBinding.control.heading.setOnLongClickListener(view -> onChange());
         mBinding.control.right.lock.setOnClickListener(view -> onLock());
         mBinding.control.right.rotate.setOnClickListener(view -> onRotate());
+        mBinding.control.fullscreen.setOnClickListener(view -> onFullscreen());
         mBinding.control.danmaku.setOnClickListener(view -> onDanmakuShow());
         mBinding.control.action.text.setOnClickListener(this::onTrack);
         mBinding.control.action.audio.setOnClickListener(this::onTrack);
@@ -1060,6 +1061,12 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
         setRequestedOrientation(PlaybackOrientation.getRotateOrientation(this));
     }
 
+    private void onFullscreen() {
+        setR1Callback();
+        if (isFullscreen()) exitFullscreen();
+        else enterFullscreen();
+    }
+
     private void onTrack(View view) {
         TrackDialog.create().type(Integer.parseInt(view.getTag().toString())).show(this);
         hideControl();
@@ -1293,6 +1300,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
         if (isDiscMenuActive()) updatePlayControl(isPlayingForControls());
         updateDiscMenuVisibility();
         mBinding.control.danmaku.setVisibility(isLock() || !player().haveDanmaku() ? View.GONE : View.VISIBLE);
+        checkFullscreenImg();
         mBinding.control.setting.setVisibility(mHistory == null || isFullscreen() ? View.GONE : View.VISIBLE);
         mBinding.control.right.rotate.setVisibility(isFullscreen() && !isLock() ? View.VISIBLE : View.GONE);
         mBinding.control.keep.setVisibility(mHistory == null || isFullscreen() ? View.GONE : View.VISIBLE);
@@ -1301,6 +1309,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
         mBinding.control.action.parse.setVisibility(isUseParse() ? View.VISIBLE : View.GONE);
         mBinding.control.info.setVisibility(player().isEmpty() ? View.GONE : View.VISIBLE);
         mBinding.control.cast.setVisibility(player().isEmpty() ? View.GONE : View.VISIBLE);
+        mBinding.control.fullscreen.setVisibility(player().isEmpty() && !isWebPlaybackActive() ? View.GONE : View.VISIBLE);
         mBinding.control.center.setVisibility(isLock() ? View.GONE : View.VISIBLE);
         mBinding.control.bottom.setVisibility(isLock() ? View.GONE : View.VISIBLE);
         mBinding.control.back.setVisibility(isLock() ? View.GONE : View.VISIBLE);
@@ -1396,6 +1405,10 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
 
     private void checkLockImg() {
         mBinding.control.right.lock.setImageResource(isLock() ? R.drawable.ic_control_lock_on : R.drawable.ic_control_lock_off);
+    }
+
+    private void checkFullscreenImg() {
+        mBinding.control.fullscreen.setImageResource(isFullscreen() ? R.drawable.ic_control_fullscreen_exit : R.drawable.ic_control_fullscreen);
     }
 
     private void checkDanmakuImg() {
@@ -1852,9 +1865,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
     @Override
     public void onDoubleTap() {
         if (isLock()) return;
-        if (!isFullscreen()) {
-            enterFullscreen();
-        } else if (isPlayingForControls()) {
+        if (player().isEmpty() && !isWebPlaybackActive()) return;
+        if (isPlayingForControls()) {
             showControl();
             onPaused();
         } else {
