@@ -151,9 +151,12 @@ abstract class PrepareRuntimeTask extends DefaultTask {
             def names = nativeLibraries(module)
             if (files.findAll { it.path.startsWith('lib/') }.collect { it.path }.toSet() != names.collect { "lib/${abi}/${it}".toString() }.toSet()) throw new GradleException("Invalid ${module} native libraries for ${abi}")
         }
+        def compatibilityId = module == 'mpv'
+                ? MpvNativeLibraries.compatibilityId(inputArchive.get().asFile, ffmpegAar.get().asFile)
+                : profile.compatibilityId
         def metadata = [module: module, packageName: profile.packageName,
                         versionCode: versionCode.get(), versionName: versionName.get(),
-                        compatibilityId: profile.compatibilityId, abi: abi,
+                        compatibilityId: compatibilityId, abi: abi,
                         sha256: entry.sha256, size: entry.size]
         if (profile.entryClass != null) {
             metadata.entryClass = profile.entryClass

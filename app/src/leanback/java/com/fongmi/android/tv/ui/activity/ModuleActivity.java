@@ -43,6 +43,7 @@ public class ModuleActivity extends BaseActivity {
     @Override
     protected void initEvent() {
         mBinding.check.setOnClickListener(this::onCheck);
+        mBinding.netdisk.setOnClickListener(view -> ModuleUtil.openNetdisk(this));
     }
 
     private void onCheck(View view) {

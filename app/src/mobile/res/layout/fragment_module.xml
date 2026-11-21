@@ -68,6 +68,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/netdisk"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/module_netdisk" />
+
         </androidx.appcompat.widget.LinearLayoutCompat>
     </androidx.core.widget.NestedScrollView>
 </androidx.appcompat.widget.LinearLayoutCompat>

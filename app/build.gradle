@@ -1,5 +1,7 @@
 import com.android.build.api.artifact.SingleArtifact
 import com.fongmi.gradle.AbiApkPackaging
+import com.fongmi.gradle.GenerateMpvCompatibilityTask
+import com.fongmi.gradle.VerifyMpvJniTask
 
 plugins {
     alias libs.plugins.android.application
@@ -9,6 +11,9 @@ def localProps = new Properties()
 rootProject.file('local.properties').withInputStream {
     localProps.load(it)
 }
+
+def runtimeCatalog = providers.gradleProperty('tvRuntimeCatalog').getOrElse('https://github.com/Diaojiangjun/media/releases/download/module/catalog.json')
+def runtimeCatalogMirror = providers.gradleProperty('tvRuntimeCatalogMirror').getOrElse('')
 
 android {
     namespace = 'com.fongmi.android.tv'
@@ -21,7 +26,8 @@ android {
         targetSdk libs.versions.targetSdk.get().toInteger()
         versionCode 589
         versionName "5.8.9"
-        manifestPlaceholders.runtimeCatalog = providers.gradleProperty('tvRuntimeCatalog').getOrElse('https://github.com/FongMi/Release/releases/download/module/catalog.json')
+        buildConfigField "String", "RUNTIME_NETDISK_URL", "\"${providers.gradleProperty('tvRuntimeNetdisk').getOrElse('https://pan.quark.cn/s/5e4b118674a0')}\""
+        manifestPlaceholders.runtimeCatalog = runtimeCatalogMirror ? "${runtimeCatalog}|${runtimeCatalogMirror}" : runtimeCatalog
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments = ["room.schemaLocation": "$projectDir/schemas".toString(), "eventBusIndex": "com.fongmi.android.tv.event.EventIndex"]
@@ -97,6 +103,23 @@ android {
 }
 
 AbiApkPackaging.configure(project, SingleArtifact.APK.INSTANCE)
+
+def mpvCompatibility = tasks.register('generateMpvCompatibility', GenerateMpvCompatibilityTask) { task ->
+    task.mpvArchive.set(file('libs/lib-mpvplayer-release.aar'))
+    task.ffmpegArchive.set(file('libs/lib-decoder-ffmpeg-release.aar'))
+    task.outputDirectory.set(layout.buildDirectory.dir('generated/mpvCompatibility'))
+}
+
+androidComponents.onVariants(androidComponents.selector().all()) { variant ->
+    variant.sources.java.addGeneratedSourceDirectory(mpvCompatibility, { it.outputDirectory })
+}
+
+def verifyMpvJni = tasks.register('verifyMpvJni', VerifyMpvJniTask) { task ->
+    task.mpvArchive.set(file('libs/lib-mpvplayer-release.aar'))
+    task.ffmpegArchive.set(file('libs/lib-decoder-ffmpeg-release.aar'))
+}
+
+tasks.matching { it.name ==~ /merge\w+NativeLibs/ }.configureEach { it.dependsOn(verifyMpvJni) }
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.aar"])

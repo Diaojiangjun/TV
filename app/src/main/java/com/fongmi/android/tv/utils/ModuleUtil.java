@@ -1,11 +1,17 @@
 package com.fongmi.android.tv.utils;
 
+import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.view.View;
 
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat;
 
+import com.fongmi.android.tv.BuildConfig;
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.databinding.ItemModuleBinding;
 import com.fongmi.android.tv.model.ModuleViewModel;
@@ -14,6 +20,18 @@ import com.google.android.material.progressindicator.CircularProgressIndicator;
 import java.util.Arrays;
 
 public class ModuleUtil {
+
+    public static void openNetdisk(Context context) {
+        String url = BuildConfig.RUNTIME_NETDISK_URL;
+        if (url.isEmpty()) return;
+        try {
+            context.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } catch (ActivityNotFoundException e) {
+            ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard != null) clipboard.setPrimaryClip(ClipData.newPlainText("netdisk", url));
+            Notify.show(ResUtil.getString(R.string.module_netdisk_copied));
+        }
+    }
 
     public static boolean isBusy(ModuleViewModel[] models) {
         return Arrays.stream(models).anyMatch(model -> model.getState().getValue().isBusy());

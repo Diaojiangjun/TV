@@ -102,6 +102,7 @@ public class App extends Application implements Application.ActivityLifecycleCal
     }
 
     private void initRuntime() {
+        RuntimeModule.MPV.setCompatibilityId(MpvCompatibility.ID);
         MpvLibrary.setLibraryLoader(MpvUtil::loadRuntime);
         RuntimeModule.refresh();
         cleanRuntime();

@@ -45,6 +45,7 @@ public enum RuntimeModule {
     public final String id;
     public final String title;
     private final String library;
+    private volatile String compatibilityOverride;
 
     private static final ClassLoader SPIDER_LOADER = new ClassLoader(RuntimeModule.class.getClassLoader()) {
         @Override
@@ -73,6 +74,7 @@ public enum RuntimeModule {
     }
 
     public String getCompatibilityId() {
+        if (compatibilityOverride != null) return compatibilityOverride;
         return switch (this) {
             case PYTHON -> "catvod-python-plugin-v4";
             case NODEJS -> "catvod-nodejs-plugin-v3";
@@ -81,6 +83,10 @@ public enum RuntimeModule {
             case MPV -> "mpv-jni-ffmpeg-shared-v1";
             case BDJ -> "libbluray-1.4.1-openjdk8-zero-v1";
         };
+    }
+
+    public void setCompatibilityId(String compatibilityId) {
+        compatibilityOverride = compatibilityId == null || compatibilityId.isEmpty() ? null : compatibilityId;
     }
 
     public String getVersionName() throws IOException {

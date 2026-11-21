@@ -36,6 +36,8 @@ import org.json.JSONObject;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import okhttp3.Call;
@@ -67,14 +69,30 @@ public class RuntimeInstaller {
 
     public static JSONObject getCatalog(CancellationSignal signal) throws IOException {
         signal.throwIfCanceled();
-        String url = getCatalogUrl();
-        return url.isEmpty() ? null : getCatalog(url, signal);
+        List<String> urls = getCatalogUrls();
+        if (urls.isEmpty()) return null;
+        IOException failure = null;
+        for (String url : urls) {
+            try {
+                return getCatalog(url, signal);
+            } catch (IOException e) {
+                if (failure == null) failure = e;
+                else failure.addSuppressed(e);
+            }
+        }
+        throw failure;
     }
 
-    private static String getCatalogUrl() throws IOException {
+    private static List<String> getCatalogUrls() throws IOException {
         try {
             var info = App.get().getBaseContext().getPackageManager().getApplicationInfo(BuildConfig.APPLICATION_ID, PackageManager.GET_META_DATA);
-            return info.metaData == null ? "" : info.metaData.getString("com.fongmi.runtime.catalog", "");
+            String value = info.metaData == null ? "" : info.metaData.getString("com.fongmi.runtime.catalog", "");
+            List<String> urls = new ArrayList<>();
+            for (String part : value.split("[|\\n]")) {
+                String url = part.trim();
+                if (!url.isEmpty() && !urls.contains(url)) urls.add(url);
+            }
+            return urls;
         } catch (PackageManager.NameNotFoundException e) {
             throw new IOException("Unable to read runtime catalog configuration", e);
         }
@@ -142,6 +160,8 @@ public class RuntimeInstaller {
 
     private static JSONObject createAsset(JSONObject artifact, long code, String version) throws JSONException {
         JSONObject asset = new JSONObject().put("versionCode", code).put("versionName", version).put("browser_download_url", artifact.getString("url")).put("size", artifact.getLong("size")).put("digest", "sha256:" + artifact.getString("sha256"));
+        JSONArray mirrors = artifact.optJSONArray("mirrors");
+        if (mirrors != null) asset.put("mirror_urls", mirrors);
         new UpdatePackage(version, asset.getString("browser_download_url"), asset.getLong("size"), asset.getString("digest"));
         return asset;
     }
@@ -162,33 +182,53 @@ public class RuntimeInstaller {
 
     public static File download(RuntimeModule module, JSONObject asset, File directory, CancellationSignal signal, Downloader.ProgressListener progress) throws IOException {
         signal.throwIfCanceled();
-        UpdatePackage update = getUpdatePackage(asset);
+        List<String> urls = getDownloadUrls(asset);
         if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("Unable to create runtime download directory");
         File file = new File(directory, asset.optLong("versionCode") + "-" + getFileName(module));
-        if (file.isFile()) {
+        IOException failure = null;
+        for (String url : urls) {
+            signal.throwIfCanceled();
+            UpdatePackage update = getUpdatePackage(asset, url);
+            if (file.isFile()) {
+                try {
+                    verifyDownload(module, asset, update, file);
+                    signal.throwIfCanceled();
+                    return file;
+                } catch (IOException e) {
+                    if (!file.delete()) throw new IOException("Unable to remove invalid runtime APK", e);
+                }
+            }
             try {
+                Download.create(update.url(), file).size(update.size()).get(signal, progress == null ? null : (total, downloaded, percent) -> progress.onProgress(update.size(), downloaded, 100f * downloaded / update.size()));
+                signal.throwIfCanceled();
                 verifyDownload(module, asset, update, file);
                 signal.throwIfCanceled();
                 return file;
-            } catch (IOException e) {
-                if (!file.delete()) throw new IOException("Unable to remove invalid runtime APK", e);
+            } catch (IOException | RuntimeException | Error e) {
+                if (signal.isCanceled()) throw e;
+                try {
+                    deleteIncompleteApk(file, e);
+                } catch (IOException deleteError) {
+                    e.addSuppressed(deleteError);
+                }
+                if (failure == null) failure = e instanceof IOException ? (IOException) e : new IOException("Unable to download runtime APK", e);
+                else failure.addSuppressed(e);
             }
         }
-        boolean complete = false;
-        Throwable failure = null;
-        try {
-            Download.create(update.url(), file).size(update.size()).get(signal, progress == null ? null : (total, downloaded, percent) -> progress.onProgress(update.size(), downloaded, 100f * downloaded / update.size()));
-            signal.throwIfCanceled();
-            verifyDownload(module, asset, update, file);
-            signal.throwIfCanceled();
-            complete = true;
-            return file;
-        } catch (IOException | RuntimeException | Error e) {
-            failure = e;
-            throw e;
-        } finally {
-            if (!complete) deleteIncompleteApk(file, failure);
-        }
+        throw failure == null ? new IOException("Runtime asset URL is missing") : failure;
+    }
+
+    private static List<String> getDownloadUrls(JSONObject asset) throws IOException {
+        List<String> urls = new ArrayList<>();
+        addUrl(urls, asset.optString("browser_download_url", ""));
+        JSONArray mirrors = asset.optJSONArray("mirror_urls");
+        if (mirrors != null) for (int i = 0; i < mirrors.length(); i++) addUrl(urls, mirrors.optString(i, ""));
+        if (urls.isEmpty()) throw new IOException("Runtime asset URL is missing");
+        return urls;
+    }
+
+    private static void addUrl(List<String> urls, String url) {
+        if (!url.isEmpty() && !urls.contains(url)) urls.add(url);
     }
 
     private static void deleteIncompleteApk(File file, Throwable failure) throws IOException {
@@ -200,11 +240,11 @@ public class RuntimeInstaller {
         }
     }
 
-    private static UpdatePackage getUpdatePackage(JSONObject asset) throws IOException {
+    private static UpdatePackage getUpdatePackage(JSONObject asset, String url) throws IOException {
         if (asset.optLong("versionCode") <= 0) throw new IOException("Invalid runtime asset version");
         UpdatePackage update;
         try {
-            update = new UpdatePackage(asset.optString("versionName"), asset.optString("browser_download_url"), asset.optLong("size"), asset.isNull("digest") ? "" : asset.optString("digest"));
+            update = new UpdatePackage(asset.optString("versionName"), url, asset.optLong("size"), asset.isNull("digest") ? "" : asset.optString("digest"));
         } catch (IllegalArgumentException e) {
             throw new IOException("Invalid runtime asset", e);
         }

@@ -293,6 +293,8 @@
     <string name="module_cancel">取消</string>
     <string name="module_failed_title">操作失敗</string>
     <string name="module_check">檢查</string>
+    <string name="module_netdisk">網盤下載</string>
+    <string name="module_netdisk_copied">找不到瀏覽器，下載連結已複製</string>
     <string name="module_test">檢測</string>
     <string name="module_untested">尚未檢測</string>
     <string name="module_testing">檢測中…</string>

@@ -295,6 +295,8 @@
     <string name="module_cancel">Cancel</string>
     <string name="module_failed_title">Operation failed</string>
     <string name="module_check">Check</string>
+    <string name="module_netdisk">Netdisk download</string>
+    <string name="module_netdisk_copied">No browser found; download link copied</string>
     <string name="module_test">Test</string>
     <string name="module_untested">Not tested</string>
     <string name="module_testing">Testing…</string>

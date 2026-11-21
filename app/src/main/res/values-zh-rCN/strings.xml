@@ -293,6 +293,8 @@
     <string name="module_cancel">取消</string>
     <string name="module_failed_title">操作失败</string>
     <string name="module_check">检查</string>
+    <string name="module_netdisk">网盘下载</string>
+    <string name="module_netdisk_copied">未找到浏览器，下载链接已复制</string>
     <string name="module_test">检测</string>
     <string name="module_untested">尚未检测</string>
     <string name="module_testing">检测中…</string>

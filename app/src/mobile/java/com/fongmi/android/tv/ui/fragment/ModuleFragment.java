@@ -43,6 +43,7 @@ public class ModuleFragment extends BaseFragment {
     protected void initView() {
         mBinding.toolbar.getMenu().add(R.string.module_check).setIcon(R.drawable.ic_setting_refresh).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
         mBinding.toolbar.setOnMenuItemClickListener(this::onCheck);
+        mBinding.netdisk.setOnClickListener(view -> ModuleUtil.openNetdisk(requireContext()));
         models = new ModuleViewModel[]{ModuleViewModel.get(getRoot(), RuntimeModule.BDJ), ModuleViewModel.get(getRoot(), RuntimeModule.PYTHON), ModuleViewModel.get(getRoot(), RuntimeModule.NODEJS), ModuleViewModel.get(getRoot(), RuntimeModule.QUICKJS), ModuleViewModel.get(getRoot(), RuntimeModule.THUNDER), ModuleViewModel.get(getRoot(), RuntimeModule.MPV)};
         items = new ItemModuleBinding[]{mBinding.bdj, mBinding.python, mBinding.nodejs, mBinding.quickjs, mBinding.thunder, mBinding.mpv};
         for (int i = 0; i < items.length; i++) bind(items[i], models[i], i);

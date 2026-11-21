@@ -23,6 +23,20 @@
             android:textSize="20sp" />
 
         <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/netdisk"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:background="@drawable/selector_button"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:gravity="center"
+            android:singleLine="true"
+            android:text="@string/module_netdisk"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/check"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

@@ -11,8 +11,7 @@ class MpvNativeLibraries {
 
     private static final Set<String> SPLIT_FFMPEG = ['libavcodec.so', 'libavdevice.so', 'libavfilter.so', 'libavformat.so', 'libavutil.so', 'libswresample.so', 'libswscale.so'].toSet().asImmutable()
 
-    static Map<String, String> hostLibraries(File mpvArchive, File ffmpegArchive, String abi) {
-        def hashes = [:]
+    static Map<String, String> hostLibraries(File mpvArchive, File ffmpegArchive, String abi) {        def hashes = [:]
         new ZipFile(mpvArchive).withCloseable { archive ->
             if (SPLIT_FFMPEG.any { archive.getEntry("jni/${abi}/${it}") != null }) throw new GradleException("Split FFmpeg libraries remain for ${abi}; rebuild native artifacts")
             for (def name : AbiApkPackaging.MPV_LIBRARIES) {
@@ -31,6 +30,24 @@ class MpvNativeLibraries {
             if (!Collections.disjoint(needed(ffmpeg, abi), SPLIT_FFMPEG)) throw new GradleException("libffmpeg.so depends on split FFmpeg libraries for ${abi}")
         }
         return hashes
+    }
+
+    static String compatibilityId(File mpvArchive, File ffmpegArchive) {
+        def entries = []
+        new ZipFile(mpvArchive).withCloseable { archive ->
+            for (def abi : AbiApkPackaging.ABI_FLAVORS.values()) {
+                for (def name : (AbiApkPackaging.MPV_LIBRARIES + ['libc++_shared.so'])) {
+                    entries.add(abi + '/' + name + ':' + sha256(readLibrary(archive, name, abi)))
+                }
+            }
+        }
+        new ZipFile(ffmpegArchive).withCloseable { archive ->
+            for (def abi : AbiApkPackaging.ABI_FLAVORS.values()) {
+                entries.add(abi + '/libffmpeg.so:' + sha256(readLibrary(archive, 'libffmpeg.so', abi)))
+            }
+        }
+        entries.sort()
+        return 'mpv-' + sha256(entries.join('\n').getBytes('UTF-8')).substring(0, 16)
     }
 
     private static Set<String> requireUnifiedFfmpeg(ZipFile archive, String name, String abi) {

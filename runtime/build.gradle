@@ -41,6 +41,11 @@ configurations {
     }
 }
 
+configurations.configureEach {
+    // Kotlin stdlib 的 annotations:13.0 与 Chaquopy 的 annotations-java5:15.0 重复
+    exclude group: 'org.jetbrains', module: 'annotations'
+}
+
 android {
     namespace = profile.packageName
     enableKotlin = false

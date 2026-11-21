@@ -19,7 +19,8 @@ MODULES = {
     "quickjs": ("fongmi-quickjs-ng-0.17-v13", "libquickjs-wrapper.so"),
     "thunder": ("catvod-thunder-plugin-v1", "libxl_thunder_sdk.so"),
     "bdj": ("libbluray-1.4.1-openjdk8-zero-v1", None),
-    "mpv": ("mpv-jni-ffmpeg-shared-v1", "libplayer.so"),
+    # mpv 的 compatibilityId 由原生库哈希在构建期生成，固定值留空表示从模块 APK 的 runtime.json 动态读取
+    "mpv": (None, "libplayer.so"),
 }
 LIBRARIES = {
     "python": ("libcrypto_python.so", "libssl_python.so", "libsqlite3_python.so", "libcrypto_chaquopy.so", "libssl_chaquopy.so", "libsqlite3_chaquopy.so", "libpython3.10.so", "libpython3.so", "libchaquopy_java.so"),
@@ -32,7 +33,7 @@ PYTHON_ASSETS = ("app.imy", "build.json", "bootstrap.imy", "stdlib-common.imy", 
 JAVA_ENTRIES = {"python": "com.fongmi.chaquo.RuntimeEntry", "nodejs": "com.fongmi.nodejs.RuntimeEntry", "quickjs": "com.fongmi.quickjs.RuntimeEntry", "thunder": "com.xunlei.downloadlib.RuntimeEntry"}
 BDJ_ARCHIVE = "assets/bdj/runtime.zip"
 BDJ_LIBRARIES = ("libjava.so", "libverify.so", "libzip.so", "libnet.so", "libnio.so", "server/libjvm.so")
-DEFAULT_URL = "https://github.com/FongMi/Release/releases/download/module"
+DEFAULT_URL = "https://github.com/Diaojiangjun/media/releases/download/module"
 
 
 def digest(stream):
@@ -49,6 +50,14 @@ def read_version(file, metadata):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*", name) or ".." in name or name.endswith((".", ".lock")):
         raise ValueError(f"{file.name}: invalid runtime release version")
     return code, name
+
+
+def read_compatibility(file, module, metadata):
+    expected = MODULES[module][0]
+    value = metadata.get("compatibilityId")
+    if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*", value) or expected is not None and value != expected:
+        raise ValueError(f"{file.name}: incompatible runtime metadata")
+    return value
 
 
 def read_catalog(file):
@@ -71,7 +80,10 @@ def verify_catalog_module(file, module, ids):
     if not isinstance(identity, str) or identity not in MODULES or identity in ids:
         raise ValueError(f"{file.name}: unknown or duplicate catalog module")
     ids.add(identity)
-    if module.get("packageName") != "com.fongmi.runtime." + identity or module.get("compatibilityId") != MODULES[identity][0]:
+    expected = MODULES[identity][0]
+    compatibility = module.get("compatibilityId")
+    if (module.get("packageName") != "com.fongmi.runtime." + identity or not isinstance(compatibility, str)
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*", compatibility) or expected is not None and compatibility != expected):
         raise ValueError(f"{file.name}: incompatible catalog module")
     _, name = read_version(file, module)
     artifacts = module.get("artifacts")
@@ -95,6 +107,20 @@ def verify_catalog_artifact(file, artifact, module, version, abis):
     if not isinstance(sha, str) or not re.fullmatch("[0-9a-f]{64}", sha):
         raise ValueError(f"{file.name}: invalid catalog artifact digest")
     address = artifact.get("url")
+    verify_catalog_url(file, address, module, version, abi)
+    mirrors = artifact.get("mirrors")
+    if mirrors is not None:
+        if not isinstance(mirrors, list) or not mirrors:
+            raise ValueError(f"{file.name}: invalid catalog artifact mirrors")
+        seen = {address}
+        for mirror in mirrors:
+            verify_catalog_url(file, mirror, module, version, abi)
+            if mirror in seen:
+                raise ValueError(f"{file.name}: duplicate catalog artifact mirror")
+            seen.add(mirror)
+
+
+def verify_catalog_url(file, address, module, version, abi):
     if not isinstance(address, str) or any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in address):
         raise ValueError(f"{file.name}: invalid catalog artifact URL")
     url = urlsplit(address)
@@ -271,7 +297,6 @@ def verify_mpv_runtime(file, apk, metadata, module, abi):
 
 def read_apk(file, module, abi, aapt2):
     package = "com.fongmi.runtime." + module
-    profile, _ = MODULES[module]
     with ZipFile(file) as apk:
         metadata = read_runtime_metadata(file, apk, module, abi)
         code, name = read_version(file, metadata)
@@ -279,7 +304,7 @@ def read_apk(file, module, abi, aapt2):
     min_sdk = read_manifest(file, module, abi, code, name, aapt2)
     with file.open("rb") as stream:
         sha = digest(stream)
-    return {"id": module, "packageName": package, "compatibilityId": profile, "versionCode": code, "versionName": name,
+    return {"id": module, "packageName": package, "compatibilityId": metadata["compatibilityId"], "versionCode": code, "versionName": name,
             "artifact": {"abi": abi, "minSdk": min_sdk, "size": file.stat().st_size, "sha256": sha}}
 
 
@@ -290,8 +315,9 @@ def read_runtime_metadata(file, apk, module, abi):
     metadata = json.loads(apk.read(entry))
     if (not isinstance(metadata, dict) or metadata.get("module") != module
             or metadata.get("packageName") != "com.fongmi.runtime." + module
-            or metadata.get("compatibilityId") != MODULES[module][0] or metadata.get("abi") != abi):
+            or metadata.get("abi") != abi):
         raise ValueError(f"{file.name}: incompatible runtime metadata")
+    read_compatibility(file, module, metadata)
     return metadata
 
 
@@ -350,7 +376,7 @@ def copy_apk(source, target, artifact):
         raise
 
 
-def read_module_pair(directory, output, module, aapt2, url_base):
+def read_module_pair(directory, output, module, aapt2, url_bases):
     copies = []
     current = None
     for abi in ABIS:
@@ -364,7 +390,10 @@ def read_module_pair(directory, output, module, aapt2, url_base):
         elif metadata != {key: value for key, value in current.items() if key != "artifacts"}:
             raise ValueError(f"{module}: versions differ between ABIs")
         target = output / f"runtime-{module}-{metadata['versionName']}-{abi}.apk"
-        artifact["url"] = f"{url_base}/{target.name}"
+        artifact["url"] = f"{url_bases[0]}/{target.name}"
+        mirrors = [f"{base}/{target.name}" for base in url_bases[1:]]
+        if mirrors:
+            artifact["mirrors"] = mirrors
         current["artifacts"].append(artifact)
         copies.append((source, target, artifact))
     return current, copies
@@ -378,7 +407,11 @@ def merge_published_module(module, current, old):
         keys = ("abi", "minSdk", "size", "sha256")
         if current["versionName"] != old["versionName"] or any(any(artifact[key] != artifacts[artifact["abi"]][key] for key in keys) for artifact in current["artifacts"]):
             raise ValueError(f"{module}: same runtime version has different metadata or APK bytes")
+        mirrors = {artifact["abi"]: artifact.get("mirrors") for artifact in current["artifacts"]}
         current = old
+        for artifact in current["artifacts"]:
+            if mirrors.get(artifact["abi"]):
+                artifact["mirrors"] = mirrors[artifact["abi"]]
     elif current["versionName"] == old["versionName"]:
         raise ValueError(f"{module}: refusing to replace a published runtime version name")
     return current
@@ -397,17 +430,18 @@ def write_catalog(output, catalog):
             temporary.unlink()
 
 
-def publish(directory, output, aapt2="aapt2", url_base=DEFAULT_URL, base_catalog=None):
-    url_base = url_base.rstrip("/")
-    url = urlsplit(url_base)
-    if url.scheme not in ("https", "http") or not url.netloc or url.query or url.fragment:
-        raise ValueError("URL base must be an HTTP(S) directory without query or fragment")
+def publish(directory, output, aapt2="aapt2", url_bases=None, base_catalog=None):
+    url_bases = [value.rstrip("/") for value in (url_bases or [DEFAULT_URL])]
+    for value in url_bases:
+        url = urlsplit(value)
+        if url.scheme not in ("https", "http") or not url.netloc or url.query or url.fragment:
+            raise ValueError("URL base must be an HTTP(S) directory without query or fragment")
     catalog = read_catalog(base_catalog) if base_catalog is not None else {"schema": 1, "modules": []}
     previous = {module["id"]: module for module in catalog["modules"]}
     selected = input_modules(directory) if base_catalog is not None else MODULES
     modules, copies = {}, []
     for module in selected:
-        current, pending = read_module_pair(directory, output, module, aapt2, url_base)
+        current, pending = read_module_pair(directory, output, module, aapt2, url_bases)
         copies.extend(pending)
         if module in previous:
             current = merge_published_module(module, current, previous[module])
@@ -430,7 +464,7 @@ def main():
     parser.add_argument("directory", type=Path, help="Twelve finalized runtime APKs, or complete changed module pairs with --base-catalog")
     parser.add_argument("--output", type=Path, required=True, help="Catalog and versioned APK directory")
     parser.add_argument("--aapt2", default="aapt2", help="Android SDK aapt2 executable")
-    parser.add_argument("--url-base", default=DEFAULT_URL, help="Release asset directory URL")
+    parser.add_argument("--url-base", action="append", help="Release asset directory URL; repeat to add mirrors")
     parser.add_argument("--base-catalog", type=Path, help="Existing full catalog whose unchanged module entries are preserved")
     args = parser.parse_args()
     try:
