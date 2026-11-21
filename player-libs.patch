@@ -1,0 +1,179 @@
+diff --git a/libraries/decoder_ffmpeg/src/main/jni/ffmain.cc b/libraries/decoder_ffmpeg/src/main/jni/ffmain.cc
+index d09cacb..220fff2 100644
+--- a/libraries/decoder_ffmpeg/src/main/jni/ffmain.cc
++++ b/libraries/decoder_ffmpeg/src/main/jni/ffmain.cc
+@@ -16,7 +16,7 @@ extern "C" {
+ #include "ffvideo_surface.h"
+ static bool hasExpectedVersion(const char *library, unsigned runtimeVersion,
+                                unsigned headerVersion) {
+-  if (runtimeVersion == headerVersion) {
++  if (AV_VERSION_MAJOR(runtimeVersion) == AV_VERSION_MAJOR(headerVersion)) {
+     return true;
+   }
+   LOGE("%s version mismatch: headers=%d.%d.%d runtime=%d.%d.%d.", library,
+diff --git a/libraries/mpvplayer/proguard-rules.txt b/libraries/mpvplayer/proguard-rules.txt
+index 83f6ce7..4cf2915 100644
+--- a/libraries/mpvplayer/proguard-rules.txt
++++ b/libraries/mpvplayer/proguard-rules.txt
+@@ -5,7 +5,8 @@
+     native <methods>;
+ }
+ 
+-# libplayer resolves this bridge class and its Java callbacks by name.
+--keep class is.xyz.mpv.MPVLib {
++# libplayer resolves this bridge class, its nested Stream interface and their
++# Java callbacks by name, so R8 must not rename or remove them.
++-keep class is.xyz.mpv.** {
+   *;
+ }
+diff --git a/libraries/mpvplayer/src/main/java/is/xyz/mpv/MPVLib.java b/libraries/mpvplayer/src/main/java/is/xyz/mpv/MPVLib.java
+index 36da803..9092c05 100644
+--- a/libraries/mpvplayer/src/main/java/is/xyz/mpv/MPVLib.java
++++ b/libraries/mpvplayer/src/main/java/is/xyz/mpv/MPVLib.java
+@@ -18,10 +18,14 @@ package is.xyz.mpv;
+ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
+ 
+ import android.content.Context;
++import android.graphics.Bitmap;
+ import android.view.Surface;
+ import androidx.annotation.Nullable;
+ import androidx.annotation.RestrictTo;
++import java.nio.ByteBuffer;
++import java.util.concurrent.ConcurrentHashMap;
+ import java.util.concurrent.CopyOnWriteArrayList;
++import java.util.function.Supplier;
+ 
+ @RestrictTo(LIBRARY_GROUP)
+ public final class MPVLib {
+@@ -29,6 +33,34 @@ public final class MPVLib {
+   private static final CopyOnWriteArrayList<EventObserver> OBSERVERS = new CopyOnWriteArrayList<>();
+   private static final CopyOnWriteArrayList<LogObserver> LOG_OBSERVERS =
+       new CopyOnWriteArrayList<>();
++  private static final ConcurrentHashMap<String, Supplier<Stream>> STREAMS =
++      new ConcurrentHashMap<>();
++
++  public interface Stream {
++
++    int read(ByteBuffer buffer);
++
++    long seek(long position);
++
++    long size();
++
++    void cancel();
++
++    void close();
++  }
++
++  public static void registerStream(String uri, Supplier<Stream> factory) {
++    STREAMS.put(uri, factory);
++  }
++
++  public static void unregisterStream(String uri) {
++    STREAMS.remove(uri);
++  }
++
++  public static @Nullable Stream openStream(String uri) {
++    Supplier<Stream> factory = STREAMS.get(uri);
++    return factory == null ? null : factory.get();
++  }
+ 
+   public static native void create(Context appctx);
+ 
+@@ -49,18 +81,33 @@ public final class MPVLib {
+   public static native void detachOsdSurface();
+ 
+   /** Queues a command whose completion is delivered to {@link EventObserver#eventCommandReply}. */
++  public static native int command(String[] cmd);
++
+   public static native int enqueueCommand(long requestId, String[] cmd);
+ 
++  public static native int enqueueCommandLongResult(
++      long requestId, String resultKey, String[] cmd);
++
+   public static native int setOptionString(String name, String value);
+ 
++  public static native @Nullable Bitmap grabThumbnail(int dimension);
++
+   public static native Integer getPropertyInt(String property);
+ 
++  public static native int setPropertyInt(String property, int value);
++
+   public static native Double getPropertyDouble(String property);
+ 
++  public static native int setPropertyDouble(String property, double value);
++
+   public static native Boolean getPropertyBoolean(String property);
+ 
++  public static native int setPropertyBoolean(String property, boolean value);
++
+   public static native String getPropertyString(String property);
+ 
++  public static native int setPropertyString(String property, String value);
++
+   public static native @Nullable byte[] getPropertyByteArray(String property);
+ 
+   public static native int observeProperty(String property, int format);
+@@ -110,8 +157,12 @@ public final class MPVLib {
+   }
+ 
+   public static void eventCommandReply(long requestId, int error) {
++    eventCommandReply(requestId, error, 0);
++  }
++
++  public static void eventCommandReply(long requestId, int error, long result) {
+     for (EventObserver observer : OBSERVERS) {
+-      observer.eventCommandReply(requestId, error);
++      observer.eventCommandReply(requestId, error, result);
+     }
+   }
+ 
+@@ -151,6 +202,10 @@ public final class MPVLib {
+ 
+     default void eventCommandReply(long requestId, int error) {}
+ 
++    default void eventCommandReply(long requestId, int error, long result) {
++      eventCommandReply(requestId, error);
++    }
++
+     void eventEndFile(int reason, int error, @Nullable String errorString);
+   }
+ 
+diff --git a/libraries/ui/src/main/java/androidx/media3/ui/PlayerView.java b/libraries/ui/src/main/java/androidx/media3/ui/PlayerView.java
+index 625f1e6..b5b5ca8 100644
+--- a/libraries/ui/src/main/java/androidx/media3/ui/PlayerView.java
++++ b/libraries/ui/src/main/java/androidx/media3/ui/PlayerView.java
+@@ -36,6 +36,7 @@ import android.graphics.Bitmap;
+ import android.graphics.BitmapFactory;
+ import android.graphics.Canvas;
+ import android.graphics.Rect;
++import android.graphics.RectF;
+ import android.graphics.drawable.BitmapDrawable;
+ import android.graphics.drawable.Drawable;
+ import android.net.Uri;
+@@ -1539,6 +1540,25 @@ public class PlayerView extends FrameLayout implements AdViewProvider {
+     return surfaceView;
+   }
+ 
++  /**
++   * Returns the bounds of the video content in this view's coordinate space.
++   *
++   * <p>The bounds are the layout bounds of the content frame, so they exclude any {@link
++   * VideoTransform} scale or pan. Returns an empty rectangle if the layout has no content frame.
++   */
++  @UnstableApi
++  public RectF getVideoBounds() {
++    RectF bounds = new RectF();
++    if (contentFrame == null) {
++      return bounds;
++    }
++    Rect contentFrameBounds =
++        new Rect(0, 0, contentFrame.getWidth(), contentFrame.getHeight());
++    offsetDescendantRectToMyCoords(contentFrame, contentFrameBounds);
++    bounds.set(contentFrameBounds);
++    return bounds;
++  }
++
+   /** Returns the current video scale and pan transform. */
+   @UnstableApi
+   public VideoTransform getVideoTransform() {

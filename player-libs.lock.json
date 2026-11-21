@@ -1,0 +1,216 @@
+{
+  "schema": 1,
+  "provenance": {
+    "source": {
+      "repository": "https://github.com/Diaojiangjun/media.git",
+      "commit": "e9b5847ce6c16ec40536e0ec70cf7011391a4a9c",
+      "branch": "release-1.11.0-fongmi",
+      "dirty": true,
+      "gradle": "9.1.0",
+      "worktreePatch": {
+        "file": "player-libs.patch",
+        "sha256": "ce25d74369cc44f227bd12f9c1351d210e50a01111a95472ff37d08a6d2812ac"
+      },
+      "untrackedFiles": [
+        {
+          "path": "libraries/decoder_ffmpeg/src/main/jniLibs/arm64-v8a/libffmpeg.so",
+          "size": 24673752
+        }
+      ]
+    },
+    "toolchain": {
+      "ndk": "29.0.14206865",
+      "ffmpeg": {
+        "repository": "https://github.com/FongMi/FFmpeg",
+        "commit": "04482c8d13ac27b2a9fe93f5d388929eef8af5f4",
+        "version": "9.0",
+        "libavcodec": "63.3.100"
+      },
+      "mpv-android": {
+        "commit": "99a60ad2141d5ace94453590903c2c6b9a0a2443",
+        "source.dirty": "false"
+      },
+      "libplacebo": {
+        "repository": "https://github.com/FongMi/libplacebo.git",
+        "commit": "04b3a0918fb32b8f374193aaead8b509274aae97",
+        "source.dirty": "false",
+        "api": "373",
+        "opengl": "true",
+        "vulkan": "false"
+      },
+      "dav1d": {
+        "repository": "https://github.com/videolan/dav1d",
+        "commit": "54706fc6bc0cdecab7e9593974a4039cc038fca7"
+      }
+    }
+  },
+  "artifacts": {
+    "lib-common": {
+      "size": 685492,
+      "sha256": "fb7b1b772a9b12eafa80554ff21567bc021a22ecfef01182bf8cca783a54f0c9",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-container": {
+      "size": 67916,
+      "sha256": "3c872029b8c5cd79acfa8ae51206d971b2e19587ded98ab8f6bfb12ebf323c88",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-database": {
+      "size": 7210,
+      "sha256": "5c21bea3be7dfd30f807c601cb07b5ca68194d172b0249f99ee8dca9dfb34699",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-datasource": {
+      "size": 183774,
+      "sha256": "a691abf6fb738abb93ee2ea6f279ffe0c6d1d0f429560878e83b1c502b550a85",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-datasource-okhttp": {
+      "size": 9891,
+      "sha256": "b0833fca7a7af1fa7340e2a437ddd4712a8859ccecb2db99ba14dcfddd872606",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-decoder": {
+      "size": 19853,
+      "sha256": "99940828202b15f64cf5eff822d295820c8f369008180b179aee55ba6eed47d1",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-decoder-ffmpeg": {
+      "size": 28441638,
+      "sha256": "33903916a1a85b3522a07106576c1bc268b8dbbd147e7ca10223222f9b4e14c2",
+      "natives": {
+        "arm64-v8a": {
+          "libffmpeg.so": "cc934a94189af7ffb7dadbb455c502387640e19161332bcf258e2dd3c073b32a",
+          "libffmpegDoviJNI.so": "ed89cc982a179eaf074c852f4d99a86f69a6858fd5b1cf4db1b42d0f59dc4bd6",
+          "libffmpegJNI.so": "a445b46ba306da1b619bf8ce3959e75a2c60d5eff3d77e5ecc8344fac833a3aa"
+        },
+        "armeabi-v7a": {
+          "libffmpeg.so": "50c24a80e93459149b1635b363fd0558de7cd7a1b1b7f39c7fba396e7d4f53ff",
+          "libffmpegDoviJNI.so": "dcfe732385c915a1bf6d6616112b0ad9a7e4936f93727b734ced05bb0d34a257",
+          "libffmpegJNI.so": "ce6b8bea8bd0cd7138d39b7b8637edb7bc91b628267222fe7cae711b5bcf3684"
+        }
+      },
+      "provenance": {
+        "sha256": "20f71ebf92a0abe4d891489aad07e7b4321f09806e1ee9b5400dbbdd03573343",
+        "properties": {
+          "schema.version": "3",
+          "manifest.kind": "decoder-ffmpeg-consumer",
+          "artifact.repository": "https://github.com/FongMi/mpv-android",
+          "artifact.github.run.id": "31346106984",
+          "artifact.created.utc": "2026-08-10T01:26:40Z",
+          "mpv-android.commit": "99a60ad2141d5ace94453590903c2c6b9a0a2443",
+          "mpv-android.source.dirty": "false",
+          "ffmpeg.repository": "https://github.com/FongMi/FFmpeg",
+          "ffmpeg.commit": "04482c8d13ac27b2a9fe93f5d388929eef8af5f4",
+          "ffmpeg.version": "9.0",
+          "ffmpeg.libavcodec.version": "63.3.100",
+          "android.ndk.version": "29.0.14206865",
+          "dav1d.repository": "https://github.com/videolan/dav1d",
+          "dav1d.commit": "54706fc6bc0cdecab7e9593974a4039cc038fca7",
+          "libplacebo.repository": "https://github.com/FongMi/libplacebo.git",
+          "libplacebo.commit": "04b3a0918fb32b8f374193aaead8b509274aae97",
+          "libplacebo.source.dirty": "false",
+          "libplacebo.api": "373",
+          "libplacebo.opengl": "true",
+          "libplacebo.vulkan": "false",
+          "abi.list": "armeabi-v7a,arm64-v8a",
+          "library.list": "libavcodec.so,libavdevice.so,libavfilter.so,libavformat.so,libavutil.so,libswresample.so,libswscale.so",
+          "renderer-sdk.abi.list": "armeabi-v7a,arm64-v8a",
+          "renderer-sdk.library.path": "lib/libplacebo.a",
+          "renderer-sdk.headers.path": "include/libplacebo",
+          "renderer-sdk.headers.manifest": "headers.sha256",
+          "renderer-sdk.license.path": "LICENSE",
+          "renderer-sdk.cflags": "-DPL_STATIC -pthread",
+          "renderer-sdk.opengl.link.libraries": "dl,m,c++",
+          "renderer-sdk.producer.manifest.schema.version": "3",
+          "sha256.armeabi-v7a.libavcodec.so": "1de6984959ece4fc684bb42356c20c200c7b92f9e8b56bb09dcbde91eb75eb8a",
+          "sha256.armeabi-v7a.libavdevice.so": "87512ec224f420d9e9b8530cc05ca7dae45e6803d8cb3228e9a1d1ecaa9397a6",
+          "sha256.armeabi-v7a.libavfilter.so": "014a4e78d47ecc1c881c9f274eb9d9640fd5903b46aaea2b74b35966d145ad83",
+          "sha256.armeabi-v7a.libavformat.so": "6673cdfd05e0eede63cf9a9e038a8d3271f7937fd0b1e7a10cb76b1c775eba86",
+          "sha256.armeabi-v7a.libavutil.so": "01fbcd13ee61c5b6a23a9c4b650f3e08b263f0aa8f6d580d1c6d7d908587695c",
+          "sha256.armeabi-v7a.libswresample.so": "7ee3052b57204fbdc7e4500e8c73338c02bfe13be5ead157bfc7e8fe14ab4f3b",
+          "sha256.armeabi-v7a.libswscale.so": "89d34e966ae9420e3f7a91a8545ac509aaa1b8b8059df9d055d7e0bcead59ea4",
+          "sha256.arm64-v8a.libavcodec.so": "54c02b9013743ed58b5eff5673e800b3552bf6beab301ef8bee788e067d40f79",
+          "sha256.arm64-v8a.libavdevice.so": "d522c475d5d5157d3101946fda17d45fb054fc98da12d792c3778d45b19618f0",
+          "sha256.arm64-v8a.libavfilter.so": "c4b47f3fb22ff72ccf03611f26fe9418714886d9023b91475538ca0d811a4e24",
+          "sha256.arm64-v8a.libavformat.so": "805443787223a4f6c15876aeb9f505c7bdfb8c754bb22418d7b515bf88077717",
+          "sha256.arm64-v8a.libavutil.so": "8b5dd5d6d1cf3a162709630439b39ac8acdc8831a83955345c733c1a6d3f3529",
+          "sha256.arm64-v8a.libswresample.so": "aeab0a7a36fbb7ce5a8f341509d35e45a2017cc3b78f49ad3df964303e522059",
+          "sha256.arm64-v8a.libswscale.so": "bccbfe95f2b3456410c2931805d370afaa16a3fef2ed43ff6e31b1859065a8ef",
+          "sha256.renderer-sdk.LICENSE": "575888be9ac31801886babca6456e1beb346fa4fb3dd76f52111f8048e38d58a",
+          "sha256.renderer-sdk.armeabi-v7a.libplacebo.a": "5b6a67f48c900501afb2745955a319e9bf5aebb10b318857560846c577d62c94",
+          "sha256.renderer-sdk.armeabi-v7a.config.h": "a36895b8a7f9a48c6b45337af85d94e7c34218e8d68297a33ce933e6c86f6bc8",
+          "sha256.renderer-sdk.armeabi-v7a.headers.sha256": "580cdc9de6581f962e01fcd8806ce6b646a653e4bea1651c40d2abed356d9bb0",
+          "sha256.renderer-sdk.arm64-v8a.libplacebo.a": "425254872c725e3f85df631926a940091e4cec6347105d4e9d1a9d69f54350da",
+          "sha256.renderer-sdk.arm64-v8a.config.h": "a36895b8a7f9a48c6b45337af85d94e7c34218e8d68297a33ce933e6c86f6bc8",
+          "sha256.renderer-sdk.arm64-v8a.headers.sha256": "580cdc9de6581f962e01fcd8806ce6b646a653e4bea1651c40d2abed356d9bb0"
+        }
+      }
+    },
+    "lib-effect": {
+      "size": 406360,
+      "sha256": "0aaa378a38e6107700dcb0fc9c8fece39137cb83a31f33969ac69ef887f5ddf5",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-exoplayer": {
+      "size": 1824821,
+      "sha256": "4b67c87068f35415d7c39e7407fe057fa6bef38ac1b1d9b489984289c32aed36",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-exoplayer-hls": {
+      "size": 272851,
+      "sha256": "c53f2f13cbc17776319bff96d93b30e9a98636f382db973abf8cb5fe87fd3ff2",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-extractor": {
+      "size": 1099922,
+      "sha256": "66a541f1d71d9d0799adf7f9915d016aceba47738df5c959c196db4c99f17f48",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-mpvplayer": {
+      "size": 15306504,
+      "sha256": "ca0a6dcedbba498cd149daec6d9677f2f4be8f7a20b17018efe126f01e8d425b",
+      "natives": {
+        "arm64-v8a": {
+          "libc++_shared.so": "b5d97c38a728afe28d341cda3369f512d35eaf9c680c1b0563cd6a63e395230f",
+          "libmpv.so": "fdd432e9d187326081629794114e4a85769e22592b927aba54a0fe99e485f3de",
+          "libplayer.so": "a5483debe6d8629c11b863a9b5c5a9388882c6b76fbda08bd3109f5e383f82d8"
+        },
+        "armeabi-v7a": {
+          "libc++_shared.so": "38331a1efcb446eb1a0db440a8db8f41fa4fb698d15c061ab8c491426531c2c0",
+          "libmpv.so": "c7b7b9f29ad76e45d4542e827ebb4dc4f52f5ed31fa5656f6db3f1b0ed03a640",
+          "libplayer.so": "9a1f5ba2556c15f312d63c2e6f0f90aae9b615c361b7e5dcb82ada405663334d"
+        }
+      },
+      "provenance": null
+    },
+    "lib-session": {
+      "size": 957435,
+      "sha256": "bfc37eede6cdf641a9943ebe4839db10ead8d1eeaa8406993bee4bacb9d62a53",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-ui": {
+      "size": 374844,
+      "sha256": "a93876ba75d66153fe0abf2491dca691b23ba26789dc4e9f5bc9847148248d7f",
+      "natives": {},
+      "provenance": null
+    },
+    "lib-ui-danmaku": {
+      "size": 116831,
+      "sha256": "2c79c4de11ceec1c471bf4894a86b41b713d07fabbd9feab8bdc9dbc54108b91",
+      "natives": {},
+      "provenance": null
+    }
+  }
+}

@@ -97,7 +97,7 @@ py -3 scripts/runtime_catalog.py --verify-url <catalog-url> --check-downloads
 
 - `catalog`：校验 `catalog/catalog.json`，任何 URL、镜像、版本、兼容性字段写错都会失败。
 - `unit-test`：`./gradlew :catvod:testDebugUnitTest`，覆盖 `RuntimeModule` 的校验分支。
-- `assemble`：`./gradlew :app:assembleRelease`。**默认会被跳过**——`app/libs/lib-*.aar`（私有 media3、mpv、ffmpeg）被 `.gitignore` 排除，干净检出无法编译 app。把它们打成 `player-libs.zip` 上传到 Release，再设置仓库变量 `PLAYER_LIBS_URL` 即可启用；CI 会自己生成一次性签名密钥，产物仅用于验证可构建性。
+- `assemble`：`./gradlew :app:assembleRelease`。**默认会被跳过**——`app/libs/lib-*.aar`（私有 media3、mpv、ffmpeg）被 `.gitignore` 排除，干净检出无法编译 app。把它们打成 `player-libs.zip` 上传到 Release，再设置仓库变量 `PLAYER_LIBS_URL` 即可启用；CI 会自己生成一次性签名密钥，产物仅用于验证可构建性。**下载后会先跑 `player_libs.py --verify`**，AAR 与锁文件不一致直接失败，不会把未核验的二进制编译进 APK。
 
 `.github/workflows/catalog-health.yml` 每周探测线上一份清单在三个源上的结构与下载尺寸，代理挂掉会变成红色。
 
@@ -117,4 +117,67 @@ py -3 scripts/runtime_catalog.py --verify-url <catalog-url> --check-downloads
 
 1. **ffmpeg 下沉为插件**（预计省 30 MB）：宿主仍打包 `libffmpeg.so` + Dovi + `libffmpegJNI.so`。已验证 fork 暴露了 `FfmpegLibrary.setLibraries(String...)`，但它的 `LibraryLoader` 实现仍是 `System.loadLibrary(name)`——只认库名、不认绝对路径，而插件的 `.so` 只存在于插件 APK 的 `lib/<abi>/` 里，不在宿主的 native 搜索路径上。所以下沉的前提是 media3 fork 增加一个加载器注入点（例如 `FfmpegLibrary.setLoader(LibraryLoader)`），再在 `App.onCreate` 里用 `System.loadAbsolute` 指向 `RuntimeModule` 解析出的插件路径。这也是为什么它被排在 media3 可复现构建之后。
 2. **拆分 `PlayerManager`（1302 行）**：建议按“选源（engine 选择 + 回落）”“生命周期（prepare/start/stop/release）”“状态同步（进度、字幕、轨道的 UI 回调）”切成三个协作者，`PlayerManager` 只保留门面。前提是先给 `PlayerEngineFactory` 的选路规则补表驱动测试，否则无法验证重构未改变行为。
-3. **私有 media3 可复现**：`app/libs/lib-*.aar` 共 9 个来自同一 fork，仓库内无源码，历史构建无法重放、安全补丁无从审计。要么把 fork 源码以子模块入库并自建 `media3-custom` 构建，要么建立版本化二进制仓库并附 `SHA256SUMS`，由 `verifyMpvJni` 一类任务在构建期校验。在此之前，`compatibilityId` 机制只能保证“装错插件被拒”，保证不了“插件本身可信”。
+3. **私有 media3 可复现**：`app/libs/lib-*.aar` 共 15 个来自同一 fork，仓库内无源码，历史构建无法重放、安全补丁无从审计。源码与锁文件已就位（见第 10 节，`scripts/player_libs.py` + `player-libs.lock.json`），但 fork 仍有未提交改动，二进制溯源指针失效——完整闭合还差“上游提交化 + 原生库登记”两步。
+
+## 10. 媒体库源码与可复现构建
+
+`app/libs/lib-*.aar` 全部来自 media3 fork，构建链路是两段：
+
+```
+FongMi/mpv-android (buildscripts + FFmpeg/libplacebo/dav1d)
+        │  CI 产物：libmpv.so / libplayer.so / libffmpeg.so / libffmpegDoviJNI.so
+        ▼
+Diaojiangjun/media (media3 fork)
+        ├─ libraries/mpvplayer/src/main/jniUnified     ← mpv 原生库
+        └─ libraries/decoder_ffmpeg/src/main/jniUnified2 ← FFmpeg 原生库 + JNI 桥
+        │  ./gradlew :lib-*:assembleRelease
+        ▼
+app/libs/lib-*-release.aar
+```
+
+`player-libs.lock.json` 把“实际编译进 APK 的字节”钉住，`player-libs.patch` 记录生成这批 AAR 时工作树里未提交的改动，`scripts/player_libs.py` 负责记录与校验。
+
+```bash
+# 用现有构建输出重新记录（fork 工作树有改动时会同时更新 patch）
+py -3 scripts/player_libs.py --record
+
+# 校验 app/libs 是否与锁文件逐字节一致（含每个 AAR 内的 .so 哈希、与 catalog 的兼容码比对）
+py -3 scripts/player_libs.py --verify
+
+# 单独看这批 AAR 推出的 mpv 兼容码
+py -3 scripts/player_libs.py --compat-id
+
+# 不看 AAR，只校验锁文件与 patch 自身一致（CI 用，无需私有二进制）
+py -3 scripts/player_libs.py --verify --lock-only
+
+# 从源码整链重建：15 个模块 assembleRelease → 自动 record
+py -3 scripts/player_libs.py --build --fork D:/tmp/media-fork
+
+# 诊断：哪些原生库被打包、哪些已登记溯源、哪些目录是死重
+py -3 scripts/player_libs.py --audit
+```
+
+### 已核验的结论（2026-11-21 实测）
+
+| 项 | 结果 |
+|---|---|
+| 15 个 AAR 与 fork 的 `buildout/outputs/aar` 输出 | **逐字节一致**，说明 `app/libs` 确实是这套源码的产物 |
+| fork 工作树 | **脏**：4 个文件已改、1 个 `.so` 未跟踪。`PlayerView.getVideoBounds()` 被宿主代码引用，属于发布物的组成部分，因此这批 AAR **无法由任何提交复现**，只能靠 patch 复现 |
+| `MPVLib` 新增的 `registerStream` / `openStream` / `grabThumbnail` / `setPropertyInt` / `setPropertyDouble` / `command` / `enqueueCommandLongResult` | 宿主暂未调用，属未完成的 WIP，但已随 AAR 发布 |
+| `native-dependencies.properties` 里 14 条 `sha256.*.libav*.so` | **全部命中 `src/main/jniLibs`**——而该目录已被 `jniLibs.setSrcDirs("src/main/jniUnified2")` 弃用 |
+| 真正发布的 `libffmpeg.so` / `libffmpegDoviJNI.so`（4 个） | **清单未登记**，唯一指纹是本仓库的 `player-libs.lock.json` |
+| 清单里的 `mpv-android.commit=99a60ad` | 本机不存在；本地 `D:/tmp/mpv-android` 是单提交快照（7fa515c），远端 `fongmi` 已是 1bf892e |
+| 清单里的 `artifact.github.run.id=31346106984` | 已 404，无法回取当时的 CI 产物 |
+| 未被任何模块引用的原生目录 | `decoder_ffmpeg/jniLibs` 66.8 MB（15 个 .so）、`decoder_ffmpeg/jniUnified` 55.9 MB（6 个）、`mpvplayer/jniLibs` 46.3 MB（6 个），合计 **169 MB 死重** |
+| AAR → 兼容码 → catalog 闭环 | `--compat-id` 复算得 `mpv-420e49241a4524fc`，与 `catalog/catalog.json` 的 mpv 条目**一致**；换成别的 catalog 会被 `--verify` 拦下 |
+| 重建确定性（对照实验） | 把 `PlayerView.java` 还原到提交版本重建 `lib-ui` → `66c3cec1…`；恢复未提交改动再重建 → `a93876ba…`，与 `app/libs` 里的发布版**逐字节相同**。说明这套工具链（Gradle 9.1.0 + AGP + NDK 29）产出的 AAR 是确定的，AGP 会归一化时间戳；**唯一的不确定来源是“提交 + patch”这一人工环节**，不是编译器 |
+
+结论：commit 只能当线索，**哈希才是依据**。锁文件现在保证“APK 里的播放核心是这一批字节”，且这批字节能从“提交 `e9b5847` + `player-libs.patch`”逐字节重建；但保证不了“这一批字节由某个远端可追溯的提交产生”。
+
+### 要闭合还差三步
+
+1. **提交 fork 的工作树**：至少 `PlayerView.getVideoBounds()`（宿主在用）。`MPVLib` 的 WIP 要么补完并调用，要么回退，不要留在半成品状态随 AAR 发布。
+2. **登记真正发布的原生库**：把 `jniUnified2/libffmpeg.so`、`libffmpegDoviJNI.so`、`jniUnified/lib{mpv,player,c++_shared}.so` 的哈希写进 `native-dependencies.properties`，并让 `mpv-android.commit` 指向一个远端可取的提交（或干脆改为记录构建产物的哈希清单，不再声称可按提交重建）。
+3. **删掉 169 MB 死重目录**：`jniLibs`、`decoder_ffmpeg/jniUnified`、`mpvplayer/jniLibs` 都不参与打包，保留只会让下一个人误以为“改这里就能生效”。
+
+> `compatibilityId` 的取值取决于这些 `.so` 的哈希：一旦重建出不同的 `libmpv.so`，宿主的 `mpv-<hash>` 会变，**全部 mpv 插件 APK 都要重新构建并重发**。改媒体库之前先确认这一点，别在发布前夜顺手升级 FFmpeg。

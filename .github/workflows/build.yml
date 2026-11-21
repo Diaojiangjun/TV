@@ -24,6 +24,8 @@ jobs:
           python-version: "3.13"
       - name: Verify the recorded catalog snapshot
         run: python3 scripts/runtime_catalog.py --verify catalog/catalog.json
+      - name: Verify the player library lock
+        run: python3 scripts/player_libs.py --verify --lock-only
 
   unit-test:
     name: catvod unit tests
@@ -95,6 +97,11 @@ jobs:
               echo "把 AAR 打成 player-libs.zip 上传到 Release，并在仓库变量中设置 \`PLAYER_LIBS_URL\` 即可启用。"
             } >> "$GITHUB_STEP_SUMMARY"
           fi
+      - name: Verify the restored player libraries
+        if: steps.libraries.outputs.available == 'true'
+        run: |
+          python3 scripts/player_libs.py --verify --dir app/libs
+          echo "AAR 与 \`player-libs.lock.json\` 逐字节一致（含原生库与溯源清单）" >> "$GITHUB_STEP_SUMMARY"
       - name: Create a throwaway signing key
         if: steps.libraries.outputs.available == 'true'
         run: |
