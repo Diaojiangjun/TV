@@ -34,14 +34,15 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - uses: android-actions/setup-android@v3
-        with:
-          log-accepted-android-sdk-licenses: true
+      - name: Inspect the preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools" 2>/dev/null || true
       - uses: gradle/actions/setup-gradle@v4
       - name: Provide local.properties
         run: |
           cat > local.properties <<EOF
-          sdk.dir=$ANDROID_SDK_ROOT
+          sdk.dir=$ANDROID_HOME
           storeFile=$GITHUB_WORKSPACE/ci.jks
           keyAlias=ci
           storePassword=ci
@@ -66,9 +67,10 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - uses: android-actions/setup-android@v3
-        with:
-          log-accepted-android-sdk-licenses: true
+      - name: Inspect the preinstalled Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools" 2>/dev/null || true
       - uses: gradle/actions/setup-gradle@v4
       - name: Restore the private player libraries
         id: libraries
@@ -102,7 +104,7 @@ jobs:
         if: steps.libraries.outputs.available == 'true'
         run: |
           cat > local.properties <<EOF
-          sdk.dir=$ANDROID_SDK_ROOT
+          sdk.dir=$ANDROID_HOME
           storeFile=$GITHUB_WORKSPACE/ci.jks
           keyAlias=ci
           storePassword=cipassword
