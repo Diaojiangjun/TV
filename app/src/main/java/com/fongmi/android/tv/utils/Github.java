@@ -1,11 +1,15 @@
 package com.fongmi.android.tv.utils;
 
+import com.fongmi.android.tv.BuildConfig;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Github {
 
-    private static final String REPO = "FongMi/Release";
+    // 更新來源：本倉庫的 Release，可用 -PtvUpdateRepo=owner/repo 覆蓋
+    // 資產名需為 <flavor>-<abi>.apk（如 mobile-arm64_v8a.apk），tag 需為 vX.Y.Z
+    private static final String REPO = BuildConfig.UPDATE_REPO;
 
     public static String getReleases() {
         return "https://api.github.com/repos/" + REPO + "/releases?per_page=100";

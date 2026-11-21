@@ -49,6 +49,7 @@ public class Updater {
     private boolean checking;
     private boolean downloading;
     private boolean paused;
+    private volatile boolean forced;
     private boolean modulesChecked;
     private Map<RuntimeModule, Long> moduleUpdates;
     private int progress;
@@ -70,6 +71,7 @@ public class Updater {
             Task.execute(this::checkModules);
         }
         if (force) {
+            forced = true;
             Notify.show(R.string.update_check);
             Setting.putUpdate(true);
         }
@@ -135,12 +137,17 @@ public class Updater {
     }
 
     private void checkRelease() {
+        boolean notifyLatest = forced;
+        forced = false;
         try {
             String abi = PackageAbi.get().replace('-', '_');
             String filename = BuildConfig.FLAVOR + "-" + abi + ".apk";
             JSONObject release = Github.getUpdate(new JSONArray(OkHttp.string(Github.getReleases())), BuildConfig.VERSION_NAME, filename);
             if (release == null) {
-                App.post(() -> checking = false);
+                App.post(() -> {
+                    checking = false;
+                    if (notifyLatest) Notify.show(R.string.update_latest);
+                });
                 return;
             }
             prepareRelease(release, filename);

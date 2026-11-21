@@ -27,6 +27,7 @@ android {
         versionCode 589
         versionName "5.8.9"
         buildConfigField "String", "RUNTIME_NETDISK_URL", "\"${providers.gradleProperty('tvRuntimeNetdisk').getOrElse('https://pan.quark.cn/s/5e4b118674a0')}\""
+        buildConfigField "String", "UPDATE_REPO", "\"${providers.gradleProperty('tvUpdateRepo').getOrElse('Diaojiangjun/TV')}\""
         manifestPlaceholders.runtimeCatalog = runtimeCatalogMirror ? "${runtimeCatalog}|${runtimeCatalogMirror}" : runtimeCatalog
         javaCompileOptions {
             annotationProcessorOptions {
