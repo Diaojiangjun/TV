@@ -1,0 +1,119 @@
+name: Build
+
+on:
+  push:
+    branches: [main, fongmi]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  catalog:
+    name: Runtime catalog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Verify the recorded catalog snapshot
+        run: python3 scripts/runtime_catalog.py --verify catalog/catalog.json
+
+  unit-test:
+    name: catvod unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+        with:
+          log-accepted-android-sdk-licenses: true
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Provide local.properties
+        run: |
+          cat > local.properties <<EOF
+          sdk.dir=$ANDROID_SDK_ROOT
+          storeFile=$GITHUB_WORKSPACE/ci.jks
+          keyAlias=ci
+          storePassword=ci
+          EOF
+      - name: Run unit tests
+        run: ./gradlew :catvod:testDebugUnitTest --console=plain
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catvod-unit-tests
+          path: catvod/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
+
+  assemble:
+    name: assembleRelease
+    needs: unit-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+        with:
+          log-accepted-android-sdk-licenses: true
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Restore the private player libraries
+        id: libraries
+        env:
+          PLAYER_LIBS_URL: ${{ vars.PLAYER_LIBS_URL || 'https://github.com/Diaojiangjun/media/releases/download/libs/player-libs.zip' }}
+        run: |
+          if curl -fsSL --retry 2 --connect-timeout 20 -o "$RUNNER_TEMP/player-libs.zip" "$PLAYER_LIBS_URL"; then
+            unzip -q -o "$RUNNER_TEMP/player-libs.zip" -d app/libs
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "### assembleRelease"
+              echo ""
+              echo "私有 media3 / mpv / ffmpeg AAR 已从 \`$PLAYER_LIBS_URL\` 恢复，开始真实打包。"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=assembleRelease skipped::app/libs/lib-*.aar 未被仓库跟踪，且 PLAYER_LIBS_URL 不可用。设置仓库变量 PLAYER_LIBS_URL 指向 player-libs.zip 后才会执行真实打包。"
+            {
+              echo "### assembleRelease 已跳过"
+              echo ""
+              echo "\`app/libs/lib-*.aar\`（私有 media3、mpv、ffmpeg）被 \`.gitignore\` 排除，干净检出无法编译 app。"
+              echo "把 AAR 打成 player-libs.zip 上传到 Release，并在仓库变量中设置 \`PLAYER_LIBS_URL\` 即可启用。"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Create a throwaway signing key
+        if: steps.libraries.outputs.available == 'true'
+        run: |
+          keytool -genkeypair -keystore ci.jks -alias ci -storepass cipassword -keypass cipassword \
+            -keyalg RSA -keysize 4096 -validity 3650 -dname "CN=CI, O=TV, C=CN"
+      - name: Provide local.properties
+        if: steps.libraries.outputs.available == 'true'
+        run: |
+          cat > local.properties <<EOF
+          sdk.dir=$ANDROID_SDK_ROOT
+          storeFile=$GITHUB_WORKSPACE/ci.jks
+          keyAlias=ci
+          storePassword=cipassword
+          EOF
+      - name: Assemble release APKs
+        if: steps.libraries.outputs.available == 'true'
+        run: ./gradlew :app:assembleRelease --console=plain
+      - name: Upload APKs
+        if: steps.libraries.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apks
+          path: app/build/outputs/apk/*/release/*.apk
+          if-no-files-found: error

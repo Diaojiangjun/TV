@@ -5,8 +5,9 @@ Examples:
   py -3 scripts/publish_runtime.py --collect --staging Release/staging \
     --output Release/module --aapt2 D:\\Android\\Sdk\\build-tools\\37.0.0\\aapt2.exe \
     --url-base https://github.com/Diaojiangjun/media/releases/download/module \
-    --url-base https://mirror.example.com/module \
-    --github-repo Diaojiangjun/media --netdisk Release/netdisk
+    --url-base https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module \
+    --url-base https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module \
+    --github-repo Diaojiangjun/media --netdisk Release/netdisk --record catalog/catalog.json
 """
 
 import argparse
@@ -91,6 +92,7 @@ def main():
     parser.add_argument("--release-tag", default="module", help="GitHub release tag")
     parser.add_argument("--mirror-command", help="Command template executed per file, e.g. 'ossutil cp {file} oss://bucket/module/{name}'")
     parser.add_argument("--netdisk", type=Path, help="Also build an ABI-sorted manual install directory")
+    parser.add_argument("--record", type=Path, help="Copy the verified catalog to this tracked snapshot path")
     args = parser.parse_args()
 
     if args.collect:
@@ -106,6 +108,11 @@ def main():
     runtime_catalog.read_catalog(args.output / "catalog.json")
 
     catalog_file = args.output / "catalog.json"
+    if args.record:
+        args.record.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(catalog_file, args.record)
+        runtime_catalog.read_catalog(args.record)
+        print(f"Recorded {args.record}")
     names = sorted({Path(artifact["url"]).name for module in catalog["modules"] for artifact in module["artifacts"]})
     apk_files = [args.output / name for name in names]
     missing = [file for file in apk_files if not file.is_file()]

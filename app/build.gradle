@@ -13,7 +13,7 @@ rootProject.file('local.properties').withInputStream {
 }
 
 def runtimeCatalog = providers.gradleProperty('tvRuntimeCatalog').getOrElse('https://github.com/Diaojiangjun/media/releases/download/module/catalog.json')
-def runtimeCatalogMirror = providers.gradleProperty('tvRuntimeCatalogMirror').getOrElse('')
+def runtimeCatalogMirror = providers.gradleProperty('tvRuntimeCatalogMirror').getOrElse('https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/catalog.json')
 
 android {
     namespace = 'com.fongmi.android.tv'

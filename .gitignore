@@ -29,7 +29,6 @@ SKILL.*.md
 .cursor/
 .codex-remote-attachments/
 
-**/src/test*/
 **/src/androidTest*/
 tests/
 __tests__/
@@ -64,3 +63,5 @@ __pycache__/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+.workbuddy/

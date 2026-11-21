@@ -8,7 +8,9 @@ import shutil
 import stat
 import subprocess
 import tempfile
+from urllib.error import HTTPError
 from urllib.parse import urlsplit
+from urllib.request import Request, urlopen
 from zipfile import BadZipFile, ZIP_STORED, ZipFile
 
 
@@ -459,19 +461,130 @@ def publish(directory, output, aapt2="aapt2", url_bases=None, base_catalog=None)
     return catalog
 
 
+def verify_published(catalog, aapt2="aapt2", artifacts=None):
+    if artifacts is not None:
+        for module in catalog["modules"]:
+            for artifact in module["artifacts"]:
+                verify_published_artifact(artifacts, module, artifact, aapt2)
+    return catalog
+
+
+def verify_published_artifact(directory, module, artifact, aapt2):
+    name = f"runtime-{module['id']}-{module['versionName']}-{artifact['abi']}.apk"
+    file = directory / name
+    if not file.is_file():
+        raise ValueError(f"{name}: published artifact is missing")
+    actual = read_apk(file, module["id"], artifact["abi"], aapt2)
+    expected = {key: module[key] for key in ("id", "packageName", "compatibilityId", "versionCode", "versionName")}
+    expected["artifact"] = {key: artifact[key] for key in ("abi", "minSdk", "size", "sha256")}
+    if actual != expected:
+        raise ValueError(f"{name}: published artifact does not match the catalog")
+
+
+def read_remote_catalog(url):
+    address = urlsplit(url)
+    if address.scheme not in ("https", "http") or not address.netloc or address.query or address.fragment:
+        raise ValueError("catalog URL must be an HTTP(S) location without query or fragment")
+    with urlopen(url, timeout=60) as response:
+        if response.status != 200:
+            raise ValueError(f"catalog URL returned HTTP {response.status}")
+        data = response.read(1024 * 1024 + 1)
+    if len(data) > 1024 * 1024:
+        raise ValueError("catalog is larger than 1 MiB")
+    name = re.sub(r"[^A-Za-z0-9._-]", "_", Path(address.path).name) or "catalog.json"
+    try:
+        json.loads(data.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"{name}: invalid catalog JSON") from error
+    return name, data
+
+
+def verify_remote_catalog(url):
+    name, data = read_remote_catalog(url)
+    with tempfile.TemporaryDirectory() as directory:
+        file = Path(directory) / name
+        file.write_bytes(data)
+        catalog = read_catalog(file)
+    verify_published(catalog)
+    return catalog
+
+
+def report(catalog):
+    for module in catalog["modules"]:
+        versions = " ".join(f"{artifact['abi']}={artifact['size']}" for artifact in module["artifacts"])
+        mirror = sum(len(artifact.get("mirrors") or ()) for artifact in module["artifacts"])
+        print(f"- {module['id']} {module['versionName']} ({module['versionCode']}) mirrors={mirror} {versions}")
+
+
+def check_downloads(catalog):
+    for module in catalog["modules"]:
+        for artifact in module["artifacts"]:
+            for address in [artifact["url"], *(artifact.get("mirrors") or ())]:
+                probe_download(address, artifact["size"])
+
+
+def probe_download(address, size):
+    try:
+        with urlopen(Request(address, method="HEAD"), timeout=30) as response:
+            verify_download_response(address, size, response.status, response.headers)
+    except HTTPError as error:
+        if error.code not in (405, 501):
+            raise ValueError(f"{address}: HTTP {error.code}") from error
+        with urlopen(Request(address, headers={"Range": "bytes=0-0"}), timeout=30) as response:
+            verify_download_response(address, size, response.status, response.headers)
+
+
+def verify_download_response(address, size, status, headers):
+    if status not in (200, 206):
+        raise ValueError(f"{address}: HTTP {status}")
+    total = headers.get("Content-Length")
+    if status == 206:
+        match = re.fullmatch(r"bytes 0-0/([0-9]+)", headers.get("Content-Range") or "")
+        total = None if match is None else match[1]
+    if total is not None and total.isdigit() and int(total) != size:
+        raise ValueError(f"{address}: size {total} does not match catalog {size}")
+
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Create catalog.json and versioned APKs from finalized runtime modules.")
-    parser.add_argument("directory", type=Path, help="Twelve finalized runtime APKs, or complete changed module pairs with --base-catalog")
-    parser.add_argument("--output", type=Path, required=True, help="Catalog and versioned APK directory")
+    parser = argparse.ArgumentParser(description="Create or verify a runtime module catalog.")
+    parser.add_argument("directory", type=Path, nargs="?", help="Twelve finalized runtime APKs, or complete changed module pairs with --base-catalog")
+    parser.add_argument("--output", type=Path, help="Catalog and versioned APK directory")
     parser.add_argument("--aapt2", default="aapt2", help="Android SDK aapt2 executable")
     parser.add_argument("--url-base", action="append", help="Release asset directory URL; repeat to add mirrors")
     parser.add_argument("--base-catalog", type=Path, help="Existing full catalog whose unchanged module entries are preserved")
+    parser.add_argument("--verify", type=Path, metavar="CATALOG", help="Verify an existing catalog instead of publishing")
+    parser.add_argument("--verify-url", metavar="URL", help="Verify the catalog served at this URL instead of publishing")
+    parser.add_argument("--artifacts", type=Path, metavar="DIRECTORY", help="With --verify: re-verify the referenced published APKs in this directory")
+    parser.add_argument("--check-downloads", action="store_true", help="With --verify modes: probe every primary and mirror URL")
     args = parser.parse_args()
+    verifying = args.verify is not None or args.verify_url is not None
     try:
+        if verifying:
+            if args.output is not None or args.directory is not None or args.url_base:
+                parser.error("--verify modes cannot be combined with publishing arguments")
+            if args.artifacts is not None and args.verify is None:
+                parser.error("--artifacts requires --verify")
+            if args.verify is not None:
+                catalog = verify_published(read_catalog(args.verify), args.aapt2, args.artifacts)
+                print(f"Verified {args.verify}")
+            else:
+                catalog = verify_remote_catalog(args.verify_url)
+                print(f"Verified {args.verify_url}")
+            report(catalog)
+            if args.check_downloads:
+                check_downloads(catalog)
+                print("Every artifact URL responded with the published size")
+            return
+        if args.directory is None or args.output is None:
+            parser.error("either --verify, --verify-url or a directory together with --output is required")
+        if args.artifacts is not None or args.check_downloads:
+            parser.error("--artifacts and --check-downloads only apply to the verify modes")
         publish(args.directory, args.output, args.aapt2, args.url_base, args.base_catalog)
     except (OSError, ValueError, KeyError, BadZipFile, subprocess.CalledProcessError) as error:
         parser.exit(1, f"error: {error}\n")
     print(f"Created {args.output / 'catalog.json'} and versioned runtime APKs")
+
 
 
 if __name__ == "__main__":

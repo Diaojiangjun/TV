@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "modules": [
+    {
+      "id": "python",
+      "packageName": "com.fongmi.runtime.python",
+      "compatibilityId": "catvod-python-plugin-v4",
+      "versionCode": 114,
+      "versionName": "1.1.4",
+      "artifacts": [
+        {
+          "abi": "arm64-v8a",
+          "minSdk": 24,
+          "size": 39102898,
+          "sha256": "9b4de1fb7beb7f679fee78bd506fdd6a56a097095b29e31647a9657d67d99155",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-python-1.1.4-arm64-v8a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-python-1.1.4-arm64-v8a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-python-1.1.4-arm64-v8a.apk"
+          ]
+        },
+        {
+          "abi": "armeabi-v7a",
+          "minSdk": 24,
+          "size": 32853559,
+          "sha256": "6da96ad8945c23124e472da3cc37fb6dc4ce4625f21d9697da863c4c8c191d85",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-python-1.1.4-armeabi-v7a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-python-1.1.4-armeabi-v7a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-python-1.1.4-armeabi-v7a.apk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nodejs",
+      "packageName": "com.fongmi.runtime.nodejs",
+      "compatibilityId": "catvod-nodejs-plugin-v3",
+      "versionCode": 108,
+      "versionName": "1.0.8",
+      "artifacts": [
+        {
+          "abi": "arm64-v8a",
+          "minSdk": 24,
+          "size": 49943049,
+          "sha256": "5b02313dcfe4ec677b8617f15984ef7c6ba5c8213c8f68ab4c630a10d4b26999",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-nodejs-1.0.8-arm64-v8a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-nodejs-1.0.8-arm64-v8a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-nodejs-1.0.8-arm64-v8a.apk"
+          ]
+        },
+        {
+          "abi": "armeabi-v7a",
+          "minSdk": 24,
+          "size": 43387577,
+          "sha256": "ad8d05276646d9197287ed835b06453414f4d4aab74c154822f843f31b9e9848",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-nodejs-1.0.8-armeabi-v7a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-nodejs-1.0.8-armeabi-v7a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-nodejs-1.0.8-armeabi-v7a.apk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quickjs",
+      "packageName": "com.fongmi.runtime.quickjs",
+      "compatibilityId": "fongmi-quickjs-ng-0.17-v13",
+      "versionCode": 113,
+      "versionName": "1.1.3",
+      "artifacts": [
+        {
+          "abi": "arm64-v8a",
+          "minSdk": 24,
+          "size": 2418178,
+          "sha256": "08f594ca9974e7c5c537faf512c4c951f1e66828b0a1e0650f5d95e8777e0b2e",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-quickjs-1.1.3-arm64-v8a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-quickjs-1.1.3-arm64-v8a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-quickjs-1.1.3-arm64-v8a.apk"
+          ]
+        },
+        {
+          "abi": "armeabi-v7a",
+          "minSdk": 24,
+          "size": 1941968,
+          "sha256": "c237a3e239a36b2d064d7d9be5b3b4319d5ca7fb5d0450a2328a529bcbe6458a",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-quickjs-1.1.3-armeabi-v7a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-quickjs-1.1.3-armeabi-v7a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-quickjs-1.1.3-armeabi-v7a.apk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thunder",
+      "packageName": "com.fongmi.runtime.thunder",
+      "compatibilityId": "catvod-thunder-plugin-v1",
+      "versionCode": 6,
+      "versionName": "1.0.5",
+      "artifacts": [
+        {
+          "abi": "arm64-v8a",
+          "minSdk": 24,
+          "size": 6515667,
+          "sha256": "f8213b60195994b54d3962542b79f64133276ecb0734dae24cc182304525c89a",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-thunder-1.0.5-arm64-v8a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-thunder-1.0.5-arm64-v8a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-thunder-1.0.5-arm64-v8a.apk"
+          ]
+        },
+        {
+          "abi": "armeabi-v7a",
+          "minSdk": 24,
+          "size": 4244933,
+          "sha256": "9115004f6a3c8523c3cbe2bcb18f9fcdc1fc623767c57c9964253741054f738e",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-thunder-1.0.5-armeabi-v7a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-thunder-1.0.5-armeabi-v7a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-thunder-1.0.5-armeabi-v7a.apk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bdj",
+      "packageName": "com.fongmi.runtime.bdj",
+      "compatibilityId": "libbluray-1.4.1-openjdk8-zero-v1",
+      "versionCode": 3,
+      "versionName": "1.0.2",
+      "artifacts": [
+        {
+          "abi": "arm64-v8a",
+          "minSdk": 24,
+          "size": 41292994,
+          "sha256": "2e6dc6c9d8a5aa34bbce007254c189e0a82cba3e8b4e4c7808f482f18978091d",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-bdj-1.0.2-arm64-v8a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-bdj-1.0.2-arm64-v8a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-bdj-1.0.2-arm64-v8a.apk"
+          ]
+        },
+        {
+          "abi": "armeabi-v7a",
+          "minSdk": 24,
+          "size": 40855948,
+          "sha256": "e8b491578800be8e6558344dcc52a9fec801decbd141a304240d2fd02b78f284",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-bdj-1.0.2-armeabi-v7a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-bdj-1.0.2-armeabi-v7a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-bdj-1.0.2-armeabi-v7a.apk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mpv",
+      "packageName": "com.fongmi.runtime.mpv",
+      "compatibilityId": "mpv-420e49241a4524fc",
+      "versionCode": 113,
+      "versionName": "1.1.3",
+      "artifacts": [
+        {
+          "abi": "arm64-v8a",
+          "minSdk": 24,
+          "size": 18219324,
+          "sha256": "7fd5cd1dd1eb0a71c1fb9ce097140865eac4eba2aecb5bd36eb2d0c5da4635cf",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-mpv-1.1.3-arm64-v8a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-mpv-1.1.3-arm64-v8a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-mpv-1.1.3-arm64-v8a.apk"
+          ]
+        },
+        {
+          "abi": "armeabi-v7a",
+          "minSdk": 24,
+          "size": 14976008,
+          "sha256": "9116106b3bd6fb4e9e104d642163ec6d5adb7b94168b916827af19f2b6dd7f14",
+          "url": "https://github.com/Diaojiangjun/media/releases/download/module/runtime-mpv-1.1.3-armeabi-v7a.apk",
+          "mirrors": [
+            "https://ghfast.top/https://github.com/Diaojiangjun/media/releases/download/module/runtime-mpv-1.1.3-armeabi-v7a.apk",
+            "https://gh-proxy.com/https://github.com/Diaojiangjun/media/releases/download/module/runtime-mpv-1.1.3-armeabi-v7a.apk"
+          ]
+        }
+      ]
+    }
+  ]
+}

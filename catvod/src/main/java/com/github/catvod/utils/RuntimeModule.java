@@ -170,7 +170,7 @@ public enum RuntimeModule {
         return SPIDER_LOADER;
     }
 
-    private static RuntimeModule moduleForClass(String name) {
+    static RuntimeModule moduleForClass(String name) {
         if (name.startsWith("com.fongmi.chaquo.") || name.startsWith("com.chaquo.python.")) return PYTHON;
         if (name.startsWith("com.fongmi.nodejs.")) return NODEJS;
         if (name.startsWith("com.fongmi.quickjs.") && !name.startsWith("com.fongmi.quickjs.host.")) return QUICKJS;
@@ -454,13 +454,13 @@ public enum RuntimeModule {
         }
     }
 
-    private void verifyMetadata(JSONObject json, PackageInfo info, String abi) throws IOException, JSONException {
+    void verifyMetadata(JSONObject json, PackageInfo info, String abi) throws IOException, JSONException {
         if (!id.equals(json.getString("module")) || !getPackageName().equals(json.getString("packageName")) || versionCode(info) != json.getLong("versionCode") || !json.getString("versionName").equals(info.versionName) || !getCompatibilityId().equals(json.getString("compatibilityId"))) throw new IOException("Incompatible runtime metadata");
         if (!abi.equals(json.getString("abi"))) throw new IOException("Incompatible runtime ABI");
         if (this != BDJ && !("lib/" + abi + "/" + library).equals(json.getString("library"))) throw new IOException("Incompatible runtime ABI");
     }
 
-    private void verifyJavaRuntime(JSONObject json, PackageInfo info) throws IOException, JSONException {
+    void verifyJavaRuntime(JSONObject json, PackageInfo info) throws IOException, JSONException {
         if (!getEntryClass().isEmpty()) if (!getEntryClass().equals(json.getString("entryClass")) || !Integer.valueOf(1).equals(json.opt("javaApi")) || (info.applicationInfo.flags & android.content.pm.ApplicationInfo.FLAG_HAS_CODE) == 0) throw new IOException("Incompatible Java runtime");
     }
 
@@ -491,7 +491,7 @@ public enum RuntimeModule {
         }
     }
 
-    private static String readHostCppSha256(JSONObject libraries) throws IOException, JSONException {
+    static String readHostCppSha256(JSONObject libraries) throws IOException, JSONException {
         if (libraries.length() != 1 || !libraries.has("libc++_shared.so")) throw new IOException("Invalid MPV host libraries");
         String expected = libraries.getString("libc++_shared.so");
         if (!expected.matches("[0-9a-f]{64}")) throw new IOException("Invalid MPV host library digest");
@@ -525,7 +525,7 @@ public enum RuntimeModule {
         return files;
     }
 
-    private HashSet<String> verifyPayloadMetadata(List<Payload> files, String abi) throws IOException {
+    HashSet<String> verifyPayloadMetadata(List<Payload> files, String abi) throws IOException {
         var paths = new HashSet<String>();
         for (Payload payload : files) {
             if (!paths.add(payload.path) || !payload.sha256.matches("[0-9a-f]{64}") || payload.size <= 0 || payload.size > 128 * 1024 * 1024) throw new IOException("Invalid runtime payload metadata");
@@ -534,7 +534,7 @@ public enum RuntimeModule {
         return paths;
     }
 
-    private void verifyPayloadPath(Payload payload, String abi) throws IOException {
+    void verifyPayloadPath(Payload payload, String abi) throws IOException {
         if (payload.path.startsWith("lib/")) {
             String prefix = "lib/" + abi + "/";
             if (!payload.path.startsWith(prefix) || !Arrays.asList(libraries()).contains(payload.path.substring(prefix.length()))) throw new IOException("Invalid runtime library path");
@@ -551,7 +551,7 @@ public enum RuntimeModule {
         }
     }
 
-    private void verifyRequiredPayloads(HashSet<String> paths, String abi) throws IOException {
+    void verifyRequiredPayloads(HashSet<String> paths, String abi) throws IOException {
         if (this != BDJ) for (String name : libraries()) if (!paths.contains("lib/" + abi + "/" + name)) throw new IOException("Runtime library is missing");
         if (this == PYTHON) for (String name : List.of("app.imy", "build.json", "bootstrap.imy", "stdlib-common.imy", "stdlib-" + abi + ".imy", "requirements-common.imy", "requirements-" + abi + ".imy", "cacert.pem")) if (!paths.contains("assets/chaquopy/" + name)) throw new IOException("Python asset is missing: " + name);
         if (this == QUICKJS) for (String name : List.of("net.js", "spider.js")) if (!paths.contains("assets/js/lib/" + name)) throw new IOException("QuickJS asset is missing: " + name);
@@ -624,7 +624,7 @@ public enum RuntimeModule {
         return runtime && library;
     }
 
-    private static void verifyBdjPath(String path, HashSet<String> paths) throws IOException {
+    static void verifyBdjPath(String path, HashSet<String> paths) throws IOException {
         if (!path.startsWith("j2re-image/") || path.contains("..") || path.contains("\\") || path.contains("//") || !paths.add(path)) throw new IOException("Invalid BD-J archive path");
     }
 
@@ -634,7 +634,7 @@ public enum RuntimeModule {
         verifyElf(header, abi);
     }
 
-    private static void verifyElf(byte[] header, String abi) throws IOException {
+    static void verifyElf(byte[] header, String abi) throws IOException {
         int machine = "arm64-v8a".equals(abi) ? 183 : 40;
         if (header[0] != 127 || header[1] != 'E' || header[2] != 'L' || header[3] != 'F' || header[4] != (machine == 183 ? 2 : 1) || header[5] != 1 || (header[18] & 255) != machine || header[19] != 0) throw new IOException("Invalid runtime ELF ABI");
     }
@@ -695,7 +695,7 @@ public enum RuntimeModule {
         if (!file.delete() && file.exists()) throw new IOException("Unable to remove old runtime file");
     }
 
-    private record Payload(String path, String sha256, long size) {
+    record Payload(String path, String sha256, long size) {
     }
 
     private record Metadata(PackageInfo info, String abi, String digest, List<Payload> files, String hostCppSha256) {
