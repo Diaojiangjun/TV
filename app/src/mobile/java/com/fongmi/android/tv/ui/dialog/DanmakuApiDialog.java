@@ -47,7 +47,7 @@ public class DanmakuApiDialog extends BaseAlertDialog {
     }
 
     private void onPositive(DialogInterface dialog, int which) {
-        getListener().setDanmakuApi(binding.text.getText().toString().trim());
+        getListener().setDanmakuApi(DanmakuSetting.normalizeApiUrl(binding.text.getText().toString()));
         dismiss();
     }
 

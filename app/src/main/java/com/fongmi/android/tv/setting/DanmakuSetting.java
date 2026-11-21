@@ -8,11 +8,15 @@ import androidx.annotation.Nullable;
 import androidx.media3.ui.danmaku.DanmakuConfig;
 
 import com.fongmi.android.tv.api.config.VodConfig;
+import com.fongmi.android.tv.bean.Config;
 import com.fongmi.android.tv.player.mpv.MpvConfigFile;
 import com.fongmi.android.tv.player.subtitle.ExternalFont;
 import com.github.catvod.utils.Prefers;
 
 public class DanmakuSetting {
+
+    // 内置弹幕接口：用户未自定义且点播配置未下发时使用
+    public static final String DEFAULT_API_URL = "https://danmu.lzphy.top/87654321";
 
     private static final float MIN_TEXT_SCALE = 0.5f;
     private static final float MAX_TEXT_SCALE = 3.0f;
@@ -40,7 +44,7 @@ public class DanmakuSetting {
     private static final int MAX_MAX_FIXED_LINES = 10;
 
     public static boolean isLoad() {
-        return Prefers.getBoolean("danmaku_load");
+        return Prefers.getBoolean("danmaku_load", true);
     }
 
     public static void putLoad(boolean danmakuLoad) {
@@ -49,7 +53,7 @@ public class DanmakuSetting {
     }
 
     public static boolean isAuto() {
-        return Prefers.getBoolean("danmaku_auto");
+        return Prefers.getBoolean("danmaku_auto", true);
     }
 
     public static void putAuto(boolean auto) {
@@ -305,7 +309,18 @@ public class DanmakuSetting {
     public static String getEffectiveApiUrl() {
         String userUrl = getApiUrl();
         if (!TextUtils.isEmpty(userUrl)) return userUrl;
-        return VodConfig.get().getConfig().getDanmaku();
+        Config config = VodConfig.get().getConfig();
+        String configUrl = config == null ? null : config.getDanmaku();
+        return TextUtils.isEmpty(configUrl) ? DEFAULT_API_URL : configUrl;
+    }
+
+    /**
+     * 用户输入的地址若与内置地址一致，按“未自定义”处理，保存为空并继续跟随 {@link #DEFAULT_API_URL}，
+     * 避免把内置地址固化成用户偏好后无法随版本更新。
+     */
+    public static String normalizeApiUrl(String url) {
+        String value = url == null ? "" : url.trim();
+        return DEFAULT_API_URL.equals(value) ? "" : value;
     }
 
     public static void resetAppearance() {
