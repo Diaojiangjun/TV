@@ -15,6 +15,9 @@ lib-*.aar
 /Release/
 /docs/
 
+# 仓库清洁工具，构建不依赖（14MB），不入库
+/other/tools/bfg.jar
+
 AGENTS.md
 AGENTS.*.md
 CLAUDE.md
