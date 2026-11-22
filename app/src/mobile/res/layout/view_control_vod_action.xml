@@ -92,6 +92,11 @@
             tools:visibility="visible" />
 
         <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/syncplay"
+            style="@style/Control"
+            android:text="@string/syncplay" />
+
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/edition"
             style="@style/Control"
             android:text="@string/play_edition"

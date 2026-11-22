@@ -125,6 +125,7 @@ public class SettingFragment extends BaseFragment implements ConfigListener, Sit
         mBinding.player.setOnClickListener(this::onPlayer);
         mBinding.module.setOnClickListener(this::onModule);
         mBinding.danmaku.setOnClickListener(this::onDanmaku);
+        mBinding.watchParty.setOnClickListener(this::onWatchParty);
         mBinding.restore.setOnClickListener(this::onRestore);
         mBinding.version.setOnClickListener(this::onVersion);
         mBinding.vod.setOnLongClickListener(this::onVodEdit);
@@ -259,6 +260,10 @@ public class SettingFragment extends BaseFragment implements ConfigListener, Sit
 
     private void onDanmaku(View view) {
         getRoot().change(3);
+    }
+
+    private void onWatchParty(View view) {
+        getRoot().change(7);
     }
 
     private void onThemeColor(View view) {

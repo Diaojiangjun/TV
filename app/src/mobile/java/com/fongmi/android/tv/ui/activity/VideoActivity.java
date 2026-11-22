@@ -81,6 +81,8 @@ import com.fongmi.android.tv.player.media.PlaySpec;
 import com.fongmi.android.tv.service.PlaybackService;
 import com.fongmi.android.tv.setting.DanmakuSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
+import com.fongmi.android.tv.syncplay.SyncPlay;
+import com.fongmi.syncplay.SyncPlaySession;
 import com.fongmi.android.tv.ui.adapter.EpisodeAdapter;
 import com.fongmi.android.tv.ui.adapter.FlagAdapter;
 import com.fongmi.android.tv.ui.adapter.QualityAdapter;
@@ -98,6 +100,7 @@ import com.fongmi.android.tv.ui.dialog.DanmakuDialog;
 import com.fongmi.android.tv.ui.dialog.DecoderSettingDialog;
 import com.fongmi.android.tv.ui.dialog.EditionDialog;
 import com.fongmi.android.tv.ui.dialog.EpisodeGridDialog;
+import com.fongmi.android.tv.ui.dialog.SyncPlayDialog;
 import com.fongmi.android.tv.ui.dialog.EpisodeListDialog;
 import com.fongmi.android.tv.ui.dialog.InfoDialog;
 import com.fongmi.android.tv.ui.dialog.ParseDialog;
@@ -123,7 +126,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.util.List;
 import java.util.Objects;
 
-public class VideoActivity extends PlaybackActivity implements Clock.Callback, TouchInput.Listener, ControlDialog.Listener, ParseDialog.Listener, VodPlaybackHost, FlagAdapter.OnClickListener, EpisodeAdapter.OnClickListener, QualityAdapter.OnClickListener, QuickAdapter.OnClickListener, CastDialog.Listener, InfoDialog.Listener {
+public class VideoActivity extends PlaybackActivity implements Clock.Callback, TouchInput.Listener, ControlDialog.Listener, ParseDialog.Listener, VodPlaybackHost, FlagAdapter.OnClickListener, EpisodeAdapter.OnClickListener, QualityAdapter.OnClickListener, QuickAdapter.OnClickListener, CastDialog.Listener, InfoDialog.Listener, SyncPlaySession.Host {
 
     private ActivityVideoBinding mBinding;
     private VideoViewModel mViewModel;
@@ -345,6 +348,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
     @Override
     protected void initView(Bundle savedInstanceState) {
         super.initView(savedInstanceState);
+        SyncPlay.get().attach(this);
         ViewCompat.setOnApplyWindowInsetsListener(mBinding.getRoot(), (v, insets) -> setStatusBar(insets));
         mInput = TouchInput.create(this, mBinding.player, this);
         mScaleFeedback = new PinchScaleFeedback(mBinding.widget.scale);
@@ -406,6 +410,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
         mBinding.control.action.repeat.setOnClickListener(view -> onRepeat());
         mBinding.control.action.opening.setOnClickListener(view -> onOpening());
         mBinding.control.action.danmaku.setOnClickListener(view -> onDanmaku());
+        mBinding.control.action.syncplay.setOnClickListener(view -> SyncPlayDialog.show(this));
         mBinding.control.action.edition.setOnClickListener(view -> onEdition());
         mBinding.control.action.chapter.setOnClickListener(view -> onChapter());
         mBinding.control.action.discMenu.setOnClickListener(this::onDiscMenu);
@@ -931,6 +936,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
     public void onItemClick(Episode item) {
         if (shouldEnterFullscreen(item)) return;
         mVod.selectEpisode(item);
+        mBinding.getRoot().postDelayed(() -> SyncPlay.get().onLocalContent(), 800);
     }
 
     @Override
@@ -1728,18 +1734,22 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
     }
 
     private void onPaused() {
-        if (pauseWebPlayback()) return;
-        controller().pause();
-        if (isDiscMenuActive() || (isEnded() && isIsoPlaybackOngoing())) updatePlayControl(isPlayingForControls());
+        if (!pauseWebPlayback()) {
+            controller().pause();
+            if (isDiscMenuActive() || (isEnded() && isIsoPlaybackOngoing())) updatePlayControl(isPlayingForControls());
+        }
+        SyncPlay.get().onLocalPlayState();
     }
 
     private void onPlay() {
-        if (resumeWebPlayback()) return;
-        if (mHistory != null && isEnded() && !isDiscMenuActive() && !isIsoPlaybackOngoing()) controller().seekTo(mVod.openingPositionMs());
-        if (!player().isEmpty() && isIdle()) controller().prepare();
-        if (isEnded() && isIsoPlaybackOngoing()) controller().setPlayWhenReady(true);
-        else controller().play();
-        if (isDiscMenuActive() || (isEnded() && isIsoPlaybackOngoing())) updatePlayControl(isPlayingForControls());
+        if (!resumeWebPlayback()) {
+            if (mHistory != null && isEnded() && !isDiscMenuActive() && !isIsoPlaybackOngoing()) controller().seekTo(mVod.openingPositionMs());
+            if (!player().isEmpty() && isIdle()) controller().prepare();
+            if (isEnded() && isIsoPlaybackOngoing()) controller().setPlayWhenReady(true);
+            else controller().play();
+            if (isDiscMenuActive() || (isEnded() && isIsoPlaybackOngoing())) updatePlayControl(isPlayingForControls());
+        }
+        SyncPlay.get().onLocalPlayState();
     }
 
     private boolean isFullscreen() {
@@ -1854,6 +1864,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
     @Override
     public void onSeekEnd(long time) {
         seekTo(time);
+        mBinding.getRoot().postDelayed(() -> SyncPlay.get().onLocalSeek(), 300);
     }
 
     @Override
@@ -1985,11 +1996,92 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, T
     }
 
     @Override
+    public boolean isPlaybackActive() {
+        return !player().isEmpty() && player().getPlaybackState() != Player.STATE_IDLE;
+    }
+
+    @Override
+    public long getPositionMs() {
+        return Math.max(0, player().getPosition());
+    }
+
+    @Override
+    public long getDurationMs() {
+        return Math.max(0, player().getDuration());
+    }
+
+    @Override
+    public boolean isPaused() {
+        return !controller().getPlayWhenReady();
+    }
+
+    @Override
+    public void seekToPosition(long positionMs) {
+        if (player().isEmpty()) return;
+        controller().seekTo(Math.max(0, positionMs));
+    }
+
+    @Override
+    public void setPaused(boolean paused) {
+        if (player().isEmpty()) return;
+        if (paused) controller().pause();
+        else controller().play();
+    }
+
+    @Override
+    public String getContentId() {
+        if (mHistory == null) return "";
+        String name = mHistory.getVodName();
+        String episode = mHistory.getVodRemarks();
+        if (TextUtils.isEmpty(name)) return "";
+        return TextUtils.isEmpty(episode) || episode.equals(name) ? name : name + "#" + episode;
+    }
+
+    @Override
+    public void playContent(String contentId) {
+        if (TextUtils.isEmpty(contentId) || mHistory == null) return;
+        int index = contentId.indexOf('#');
+        String name = index < 0 ? contentId : contentId.substring(0, index);
+        String episode = index < 0 ? "" : contentId.substring(index + 1);
+        if (!name.equals(mHistory.getVodName())) {
+            Notify.show(getString(R.string.syncplay_episode_changed, contentId));
+            return;
+        }
+        if (episode.isEmpty()) return;
+        for (Episode item : mEpisodeAdapter.getItems()) {
+            if (episode.equals(item.getName())) {
+                onItemClick(item);
+                return;
+            }
+        }
+    }
+
+    @Override
+    public void notifyContent(String contentId) {
+        if (TextUtils.isEmpty(contentId) || isFinishing() || isDestroyed()) return;
+        Notify.show(getString(R.string.syncplay_episode_changed, contentId));
+    }
+
+    @Override
+    public void onSyncPlayChanged() {
+        if (!isBindingOwner()) return;
+        SyncPlaySession session = SyncPlay.get();
+        mBinding.control.action.syncplay.setText(session.isConnected() ? getString(R.string.syncplay) + "(" + session.getMemberCount() + ")" : getString(R.string.syncplay));
+    }
+
+    @Override
+    public void onSyncPlayError(String message) {
+        Notify.show(message);
+    }
+
+    @Override
     protected void onDestroy() {
         mClock.release();
         saveHistory(true);
         Timer.get().reset();
         if (isBindingOwner()) DanmakuApi.cancel();
+        SyncPlay.get().detach(this);
+        if (isFinishing()) SyncPlay.get().disconnect();
         RefreshEvent.keep();
         App.removeCallbacks(mR1, mR2, mR3, mR4);
         super.onDestroy();

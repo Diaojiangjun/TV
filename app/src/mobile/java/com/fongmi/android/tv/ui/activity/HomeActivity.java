@@ -47,6 +47,7 @@ import com.fongmi.android.tv.ui.fragment.SettingFragment;
 import com.fongmi.android.tv.ui.fragment.SettingOutputFragment;
 import com.fongmi.android.tv.ui.fragment.SettingPlayerFragment;
 import com.fongmi.android.tv.ui.fragment.SettingPreloadFragment;
+import com.fongmi.android.tv.ui.fragment.SettingSyncPlayFragment;
 import com.fongmi.android.tv.ui.fragment.VodFragment;
 import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.PermissionUtil;
@@ -151,6 +152,7 @@ public class HomeActivity extends BaseActivity implements NavigationBarView.OnIt
             case 4 -> SettingPreloadFragment.newInstance();
             case 5 -> SettingOutputFragment.newInstance();
             case 6 -> ModuleFragment.newInstance();
+            case 7 -> SettingSyncPlayFragment.newInstance();
             default -> null;
         };
     }
@@ -285,7 +287,7 @@ public class HomeActivity extends BaseActivity implements NavigationBarView.OnIt
             setNavigation();
         } else if (mManager.isVisible(4) || mManager.isVisible(5)) {
             change(2);
-        } else if (mManager.isVisible(3) || mManager.isVisible(2) || mManager.isVisible(6)) {
+        } else if (mManager.isVisible(3) || mManager.isVisible(2) || mManager.isVisible(6) || mManager.isVisible(7)) {
             change(1);
         } else if (mManager.isVisible(1)) {
             change(0);

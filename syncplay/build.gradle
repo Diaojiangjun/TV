@@ -1,0 +1,27 @@
+plugins {
+    id 'java-library'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    // Android 运行时自带 org.json，打进 APK 会造成重复类；这里只借它的 API 编译。
+    // 单测跑在 JVM 上，需要一份真实实现。
+    compileOnly 'org.json:json:20240303'
+    testImplementation 'org.json:json:20240303'
+    testImplementation libs.junit
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Test).configureEach {
+    testLogging {
+        events 'failed'
+        exceptionFormat 'full'
+    }
+}
